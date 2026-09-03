@@ -5,7 +5,7 @@ import { Context, Logger, Metrics } from "#core";
 import { appRouter } from "#server/trpc/app.router";
 import { type AppDeps, createContextFactory, headersFromIncoming } from "#server/trpc/context";
 
-export const WS_PATH = "/api/ws";
+const WS_PATH = "/api/ws";
 
 /**
  * tRPC subscriptions over WebSocket, sharing the HTTP server's port. Only `WS_PATH` upgrades

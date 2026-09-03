@@ -52,6 +52,12 @@ export class ForbiddenError extends AppError {
   }
 }
 
+export class ConflictError extends AppError {
+  constructor(message = "Resource already exists") {
+    super(message, { status: 409, code: "CONFLICT" });
+  }
+}
+
 export class ValidationError extends AppError {
   constructor(message: string, details?: Record<string, unknown>) {
     super(message, { status: 422, code: "VALIDATION_ERROR", ...(details ? { details } : {}) });

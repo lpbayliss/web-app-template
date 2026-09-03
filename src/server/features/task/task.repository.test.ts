@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { ConflictError } from "#core";
 import { schema } from "#server/db/client";
 import { createTestDb, type TestDb } from "#test/server/db.harness";
 import { createTaskRepository, type TaskRepository } from "./task.repository";
@@ -43,6 +44,15 @@ describe("TaskRepository", () => {
     const updated = await repo.update("alice", task.id, { completed: true, title: "done" });
     expect(updated).toMatchObject({ completed: true, title: "done" });
     expect(updated!.updatedAt.getTime()).toBeGreaterThan(task.updatedAt.getTime());
+  });
+
+  it("accepts a client-supplied id and rejects duplicates with ConflictError", async () => {
+    const id = crypto.randomUUID();
+    const task = await repo.insert("alice", { id, title: "client id" });
+    expect(task.id).toBe(id);
+    await expect(repo.insert("alice", { id, title: "again" })).rejects.toBeInstanceOf(
+      ConflictError,
+    );
   });
 
   it("deletes and reports whether a row was removed", async () => {

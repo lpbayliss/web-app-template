@@ -79,5 +79,3 @@ export function createWorker(deps: WorkerDeps) {
     close: () => worker.close(),
   };
 }
-
-export type AppWorker = ReturnType<typeof createWorker>;

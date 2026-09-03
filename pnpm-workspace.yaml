@@ -1,4 +1,11 @@
-# Single-package project: this file only carries pnpm settings (pnpm 10+ reads them here, not package.json).
+# Single-package project: this file only carries pnpm settings (pnpm 10+ reads them here, not package.json/.npmrc).
+
+engineStrict: true
+managePackageManagerVersions: true
+saveExact: false
+# Do not pull optional peers (vitest, typescript, drizzle-kit, ...) into production installs.
+autoInstallPeers: false
+strictPeerDependencies: false
 
 # Supply-chain guard: refuse versions published less than 3 days ago so a compromised
 # release is usually yanked before it can land here. Override per package with

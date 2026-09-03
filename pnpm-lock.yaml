@@ -1,7 +1,7 @@
 lockfileVersion: '9.0'
 
 settings:
-  autoInstallPeers: true
+  autoInstallPeers: false
   excludeLinksFromLockfile: false
 
 importers:
@@ -107,6 +107,9 @@ importers:
       resend:
         specifier: ^6.25.0
         version: 6.25.0(@react-email/render@2.1.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8))
+      tailwind-variants:
+        specifier: ^3.3.1
+        version: 3.3.1(tailwindcss@4.3.3)
       trpc-to-openapi:
         specifier: ^3.3.0
         version: 3.3.0(@trpc/server@11.18.0(typescript@7.0.2))(zod-openapi@5.4.6(zod@4.5.4))(zod@4.5.4)
@@ -138,12 +141,6 @@ importers:
       '@electric-sql/pglite':
         specifier: ^0.5.8
         version: 0.5.8
-      '@faker-js/faker':
-        specifier: ^10.6.0
-        version: 10.6.0
-      '@formatjs/cli':
-        specifier: ^6.16.22
-        version: 6.16.22
       '@playwright/test':
         specifier: ^1.62.1
         version: 1.62.1
@@ -1131,72 +1128,6 @@ packages:
       '@noble/hashes': ^1.8.0 || ^2.0.0
     peerDependenciesMeta:
       '@noble/hashes':
-        optional: true
-
-  '@faker-js/faker@10.6.0':
-    resolution: {integrity: sha512-3RQHgEtvL1Frl/d1cSreo7qhJ3Gk1OdNUai/CtZ8G+wYeRQnJih3s9xJ9/kgYekPQRdwgh0HXRPqMlzWGwivIQ==}
-    engines: {node: ^20.19.0 || ^22.13.0 || ^23.5.0 || >=24.0.0, npm: '>=10'}
-
-  '@formatjs/cli-native-darwin-arm64@1.1.16':
-    resolution: {integrity: sha512-ngpS7Wv0p56ZWD6NKfri/YDlY5zZftfPnBP5+CxqhvgeGh7raZF2KT1r6HUWGUU7YTyk4PIqMXctjP/XzM4Zxg==}
-    cpu: [arm64]
-    os: [darwin]
-
-  '@formatjs/cli-native-linux-arm64-musl@1.0.14':
-    resolution: {integrity: sha512-t5KjkRAKas+75zHsUTKsJinE+zS0yAE/7pu0UZ8AEx185mNqqvLA7sYdqa1Nxh1M/QBWAKWkBGxJvZLCJorfNg==}
-    cpu: [arm64]
-    os: [linux]
-    libc: [musl]
-
-  '@formatjs/cli-native-linux-arm64@1.2.16':
-    resolution: {integrity: sha512-yo+gbVxL8zWMQPmZKfzjEzi4gBcajKzkImFT9/EakMZlYD1l0FWg9a48femjZI9C8nXcSMieYR7BjlqGbZ8rpQ==}
-    cpu: [arm64]
-    os: [linux]
-    libc: [glibc]
-
-  '@formatjs/cli-native-linux-x64-musl@1.0.14':
-    resolution: {integrity: sha512-H0bBDibQQiZ0HwrW1FcXD64b25+uzKmafM/wk69UJ7mkXy2qDtqpW2Hz6BL2PbSP0cLkjOMXVHE9Hogg7y5NfQ==}
-    cpu: [x64]
-    os: [linux]
-    libc: [musl]
-
-  '@formatjs/cli-native-linux-x64@1.1.16':
-    resolution: {integrity: sha512-v7mjBx2CXUVsac5W2IOFWxam4ZV4NDsqfJf7rg35cpDU7+fnfeNB4M6xRH6KIQuZcrNLeYvRv0d8okUHq2xSgw==}
-    cpu: [x64]
-    os: [linux]
-    libc: [glibc]
-
-  '@formatjs/cli-native-win32-x64@1.1.17':
-    resolution: {integrity: sha512-qmpxCEAS4srN35bId84gijmK7HsMv1YOWhkciKPjc3vtNcdpTeMwviD/boQB4goaFeRNi7RLx3EkJ+klhIKA9w==}
-    cpu: [x64]
-    os: [win32]
-
-  '@formatjs/cli@6.16.22':
-    resolution: {integrity: sha512-zRoYm8TDxDvYLR2xx9GKzmVhgTyhSyKTdbgbfLvnAL9HOW63GemVELayqEr9p/O+FlVg45PSQx2HjHJrgYEb+w==}
-    engines: {node: '>= 20.12.0'}
-    hasBin: true
-    peerDependencies:
-      '@glimmer/env': '*'
-      '@glimmer/reference': '*'
-      '@glimmer/syntax': ^0.84.3 || ^0.95.0
-      '@glimmer/validator': '*'
-      '@vue/compiler-core': '3'
-      content-tag: '4'
-      vue: '3'
-    peerDependenciesMeta:
-      '@glimmer/env':
-        optional: true
-      '@glimmer/reference':
-        optional: true
-      '@glimmer/syntax':
-        optional: true
-      '@glimmer/validator':
-        optional: true
-      '@vue/compiler-core':
-        optional: true
-      content-tag:
-        optional: true
-      vue:
         optional: true
 
   '@formatjs/fast-memoize@3.1.7':
@@ -3429,11 +3360,6 @@ packages:
 
   ajv-formats@3.0.1:
     resolution: {integrity: sha512-8iUql50EUR+uUcdRQ3HDqa6EVyo3docL8g5WJ3FNcWmu62IbkGUue/pEyLBW8VGKKucTPgqeks4fIU1DA4yowQ==}
-    peerDependencies:
-      ajv: ^8.0.0
-    peerDependenciesMeta:
-      ajv:
-        optional: true
 
   ajv@8.20.0:
     resolution: {integrity: sha512-Thbli+OlOj+iMPYFBVBfJ3OmCAnaSyNn4M1vz9T6Gka5Jt9ba/HIR56joy65tY6kx/FCF5VXNB819Y7/GUrBGA==}
@@ -6113,6 +6039,18 @@ packages:
     resolution: {integrity: sha512-yEFYrVhod+hdNyx7g5Bnkkb0G6si8HJurOoOEgC8B/O0uXLHlaey/65KRv6cuWBNhBgHKAROVpc7QyYqE5gFng==}
     engines: {node: '>=20'}
 
+  tailwind-variants@3.3.1:
+    resolution: {integrity: sha512-4pAvwUtM4HKBiRZftncAbpn6V9Hhwoa5Fl7O2u5zbp7Z5Cvu+/o/6+176WY3WCEES209543quG8zFIcXCsc5Jw==}
+    engines: {node: '>=16.9.x', pnpm: '>=7.x'}
+    peerDependencies:
+      tailwind-merge: '>=3.0.0'
+      tailwindcss: '*'
+    peerDependenciesMeta:
+      tailwind-merge:
+        optional: true
+      tailwindcss:
+        optional: true
+
   tailwindcss@4.3.3:
     resolution: {integrity: sha512-gOhV3P7ufE62QDGg1zVaTgCR+EtPv92k2nIhVcVKcLmxT1sUBsQGhnZj175j+MqRt4zLF7ic+sCYjfhxMxj7YQ==}
 
@@ -6776,7 +6714,7 @@ snapshots:
       '@babel/code-frame': 7.29.7
       '@babel/generator': 7.29.8
       '@babel/helper-globals': 7.29.7
-      '@babel/parser': 7.29.8
+      '@babel/parser': 7.29.2
       '@babel/template': 7.29.7
       '@babel/types': 7.29.8
       debug: 4.4.3
@@ -7360,35 +7298,6 @@ snapshots:
   '@exodus/bytes@1.15.1(@noble/hashes@2.4.0)':
     optionalDependencies:
       '@noble/hashes': 2.4.0
-
-  '@faker-js/faker@10.6.0': {}
-
-  '@formatjs/cli-native-darwin-arm64@1.1.16':
-    optional: true
-
-  '@formatjs/cli-native-linux-arm64-musl@1.0.14':
-    optional: true
-
-  '@formatjs/cli-native-linux-arm64@1.2.16':
-    optional: true
-
-  '@formatjs/cli-native-linux-x64-musl@1.0.14':
-    optional: true
-
-  '@formatjs/cli-native-linux-x64@1.1.16':
-    optional: true
-
-  '@formatjs/cli-native-win32-x64@1.1.17':
-    optional: true
-
-  '@formatjs/cli@6.16.22':
-    optionalDependencies:
-      '@formatjs/cli-native-darwin-arm64': 1.1.16
-      '@formatjs/cli-native-linux-arm64': 1.2.16
-      '@formatjs/cli-native-linux-arm64-musl': 1.0.14
-      '@formatjs/cli-native-linux-x64': 1.1.16
-      '@formatjs/cli-native-linux-x64-musl': 1.0.14
-      '@formatjs/cli-native-win32-x64': 1.1.17
 
   '@formatjs/fast-memoize@3.1.7': {}
 
@@ -9422,8 +9331,8 @@ snapshots:
       clean-stack: 5.3.0
       indent-string: 5.0.0
 
-  ajv-formats@3.0.1(ajv@8.20.0):
-    optionalDependencies:
+  ajv-formats@3.0.1:
+    dependencies:
       ajv: 8.20.0
 
   ajv@8.20.0:
@@ -9734,7 +9643,7 @@ snapshots:
   conf@15.1.0:
     dependencies:
       ajv: 8.20.0
-      ajv-formats: 3.0.1(ajv@8.20.0)
+      ajv-formats: 3.0.1
       atomically: 2.1.1
       debounce-fn: 6.0.0
       dot-prop: 10.2.0
@@ -12006,6 +11915,10 @@ snapshots:
   systeminformation@5.33.6: {}
 
   tagged-tag@1.0.0: {}
+
+  tailwind-variants@3.3.1(tailwindcss@4.3.3):
+    optionalDependencies:
+      tailwindcss: 4.3.3
 
   tailwindcss@4.3.3: {}
 

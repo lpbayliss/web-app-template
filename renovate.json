@@ -1,0 +1,17 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:best-practices", ":semanticCommits", "group:allNonMajor", "schedule:weekly"],
+  "timezone": "Etc/UTC",
+  "labels": ["dependencies"],
+  "minimumReleaseAge": "3 days",
+  "packageRules": [
+    {
+      "matchDepTypes": ["devDependencies"],
+      "automerge": true,
+      "matchUpdateTypes": ["minor", "patch"]
+    },
+    { "matchManagers": ["github-actions"], "groupName": "github actions", "pinDigests": true },
+    { "matchManagers": ["dockerfile", "docker-compose"], "groupName": "docker images" }
+  ],
+  "lockFileMaintenance": { "enabled": true, "schedule": ["before 6am on monday"] }
+}

@@ -7,7 +7,7 @@ export interface WelcomeEmailProps {
   appUrl: string;
 }
 
-export function WelcomeEmail({ name, appUrl }: WelcomeEmailProps) {
+function WelcomeEmail({ name, appUrl }: WelcomeEmailProps) {
   return (
     <EmailLayout preview={`Welcome aboard, ${name}`}>
       <Heading as="h1" style={{ fontSize: "22px" }}>

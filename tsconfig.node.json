@@ -5,5 +5,5 @@
     "lib": ["ES2024"],
     "types": ["node"]
   },
-  "include": ["*.config.ts", "e2e", ".claude/**/*.ts"]
+  "include": ["*.config.ts", "e2e", "scripts"]
 }

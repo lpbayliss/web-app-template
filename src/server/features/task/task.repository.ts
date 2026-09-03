@@ -1,4 +1,5 @@
 import { and, desc, eq } from "drizzle-orm";
+import { ConflictError } from "#core";
 import { type Database, schema } from "#server/db/client";
 import type { TaskRow } from "#server/db/tables/task.table";
 
@@ -26,10 +27,21 @@ export function createTaskRepository(db: Database) {
       return row;
     },
 
-    async insert(ownerId: string, values: { title: string }): Promise<TaskRow> {
-      const [row] = await db.insert(tasks).values({ ownerId, title: values.title }).returning();
-      if (!row) throw new Error("insert returned no row");
-      return row;
+    async insert(
+      ownerId: string,
+      values: { id?: string | undefined; title: string },
+    ): Promise<TaskRow> {
+      try {
+        const [row] = await db
+          .insert(tasks)
+          .values({ ownerId, title: values.title, ...(values.id ? { id: values.id } : {}) })
+          .returning();
+        if (!row) throw new Error("insert returned no row");
+        return row;
+      } catch (error) {
+        if (isUniqueViolation(error)) throw new ConflictError(`Task ${values.id} already exists`);
+        throw error;
+      }
     },
 
     async update(
@@ -56,3 +68,11 @@ export function createTaskRepository(db: Database) {
 }
 
 export type TaskRepository = ReturnType<typeof createTaskRepository>;
+
+/** Postgres `unique_violation` (23505), surfaced by both postgres.js and PGlite. */
+function isUniqueViolation(error: unknown): boolean {
+  const code =
+    (error as { code?: string; cause?: { code?: string } }).code ??
+    (error as { cause?: { code?: string } }).cause?.code;
+  return code === "23505";
+}

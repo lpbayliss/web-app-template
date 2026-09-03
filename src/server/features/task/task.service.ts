@@ -11,7 +11,7 @@ export interface TaskServiceDeps {
 }
 
 /** Wire shape: dates as ISO strings, no ownerId leak. */
-export function toTask(row: TaskRow): Task {
+function toTask(row: TaskRow): Task {
   return {
     id: row.id,
     title: row.title,

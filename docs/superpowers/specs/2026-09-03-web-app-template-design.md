@@ -132,3 +132,27 @@ password hashing (scrypt), `Config.SESSION_SECRET` minimum length enforced.
 
 OpenTelemetry tracing, Storybook, i18n message extraction pipeline, multi-tenant
 auth, background job queue (BullMQ / pg-boss), email delivery provider.
+
+## Addendum (2026-09-04): scope additions
+
+Requested mid-build and implemented alongside the original list:
+
+| Concern | Choice | Notes |
+| --- | --- | --- |
+| Redis | ioredis 6 (`src/server/infra/redis.ts`) | Shared connection for cache, rate limiting and queue producers; a dedicated blocking connection per worker. |
+| Jobs / queue | BullMQ 6 (+ Bull Board at `/admin/queues`) | Most widely used Redis queue for Node. `defineJob` + registry; worker inline in dev, separate process in prod; cron via `upsertJobScheduler`. |
+| Request caching | `Cache` core global (Redis store, memory store in tests) + `cached()` tRPC middleware | Opt in per procedure with `scope: "user" \| "global"`; `Cache-Control: no-cache` bypass; `CACHE_ENABLED` kill switch; services invalidate by prefix. |
+| Compression | `hono/compress` (gzip/deflate) | Applied to API responses and static assets; verified by e2e (`content-encoding: gzip`). |
+| OpenAPI | trpc-to-openapi + Scalar | One router definition drives `/api/trpc`, `/api/v1/*` REST, `/api/openapi.json`, `/api/docs`. |
+| Admin area | Better Auth `admin` plugin, `adminProcedure`, `adminGuard`, `/admin` route | `ADMIN_EMAILS` bootstraps the first admins; user listing, role changes, bans, queue stats. |
+| Email | Resend in production, SMTP (Mailpit) locally, react-email templates | Mailpit REST API used by Playwright and the `check-email` skill. |
+| Tracing | OpenTelemetry zero-code (`--import @opentelemetry/auto-instrumentations-node/register`) | Enabled by env; winston logs get trace ids; Jaeger via compose profile. |
+| Storybook | Storybook 10 (react-vite) + a11y addon | Stories for Button, Input, TaskItem; built in CI. |
+| i18n extraction | `scripts/check-i18n.ts` | Explicit ids with JSON catalogs as source of truth; formatjs's extractor assumes `defaultMessage` in code, so a small scanner fits better. Fails CI on missing/orphaned ids. |
+
+### Implementation notes worth keeping
+
+- pnpm 11: settings live in `pnpm-workspace.yaml` (`minimumReleaseAge`, `allowBuilds`); `--prod` installs keep optional peers that resolve to root devDependencies, so the Docker `prod-deps` stage strips `devDependencies` from the manifest before installing.
+- TypeScript 7 removed `baseUrl`; `#imports` in package.json plus mirrored `paths` give every tool (tsc, tsx, Vite, Vitest, tsdown) the same aliases. Directory imports (`#server/core`) do not resolve under Node, hence the explicit `#core` mapping.
+- Node 22+ defines a disabled global `localStorage` that shadows jsdom's; the client test setup installs an in-memory Storage.
+- TanStack Router guards read the session from router context; `router.invalidate()` runs when the user id changes so sign-in/out re-evaluates `beforeLoad` without manual navigation.

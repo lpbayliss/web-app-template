@@ -46,7 +46,7 @@ function formatValue(value: unknown): string {
  *   12:34:56.789 INFO  request completed requestId=abc method=GET path=/ status=200 durationMs=3
  * Errors append their stack on indented lines. Colour only on an interactive TTY.
  */
-export function prettyFormat(useColor: boolean) {
+function prettyFormat(useColor: boolean) {
   const paint = (code: string, text: string) => (useColor ? `${code}${text}${ANSI.reset}` : text);
   return winston.format.printf((info) => {
     const { level, message, timestamp, stack, ...meta } = info as Record<string, unknown> & {

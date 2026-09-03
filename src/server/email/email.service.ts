@@ -2,7 +2,7 @@ import { render } from "@react-email/render";
 import type { ReactElement } from "react";
 import { Config, Logger, Metrics } from "#core";
 
-export interface EmailMessage {
+interface EmailMessage {
   to: string;
   subject: string;
   html: string;

@@ -1,0 +1,10 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "entry": ["src/client/**/*.stories.tsx", "e2e/**/*.e2e.ts", ".storybook/*.{ts,tsx}"],
+  "project": ["src/**/*.{ts,tsx}", "e2e/**/*.ts", ".storybook/**/*.{ts,tsx}"],
+  "ignoreDependencies": [
+    "@opentelemetry/exporter-trace-otlp-http",
+    "@opentelemetry/instrumentation-winston",
+    "@opentelemetry/sdk-node"
+  ]
+}

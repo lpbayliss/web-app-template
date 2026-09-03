@@ -5,7 +5,7 @@ import { serveStatic } from "@hono/node-server/serve-static";
 import type { Hono } from "hono";
 import type { JobQueue } from "#server/jobs/queue";
 
-export const QUEUE_BOARD_PATH = "/admin/queues";
+const QUEUE_BOARD_PATH = "/admin/queues";
 
 /** Bull Board UI for the job queue. `createApp` guards this path with `adminGuard`. */
 export function mountQueueBoard(app: Hono, jobs: JobQueue) {

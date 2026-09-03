@@ -13,7 +13,7 @@ const duration = Metrics.histogram(
   [0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5],
 );
 
-export const t = initTRPC
+const t = initTRPC
   .meta<OpenApiMeta>()
   .context<TrpcContext>()
   .create({
@@ -66,7 +66,6 @@ const observed = t.middleware(async ({ path, type, next }) => {
 });
 
 export const router = t.router;
-export const mergeRouters = t.mergeRouters;
 export const middleware = t.middleware;
 
 export const publicProcedure = t.procedure.use(observed);

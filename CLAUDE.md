@@ -1,0 +1,24 @@
+# CLAUDE.md
+
+Full-stack TypeScript template: Hono + tRPC (HTTP + WebSocket) + Drizzle/Postgres + Better Auth + BullMQ/Redis on the server; React 19 + Vite + TanStack Router/Query + Tailwind on the client. One package, no monorepo.
+
+## Commands
+
+- `pnpm dev` (needs `docker compose up -d`), `pnpm check` (lint + typecheck + i18n + test + knip), `pnpm test:e2e`
+- Project skills in `.claude/skills/` cover dev server, tests, coverage, migrations, lint, email inspection and release checks. Use them.
+
+## Conventions
+
+- Files: `kebab-name.type.ext` (`task.service.ts`, `task-list.component.tsx`, `use-tasks.hook.ts`, `*.test.ts`, `*.e2e.ts`). One concern per file.
+- Imports: `#core` (Config, Context, Logger, Metrics, Cache), `#server/*`, `#client/*`, `#shared/*`, `#test/*`. Never `../../..`.
+- Layers: router (validate + delegate) -> service (rules, events, cache invalidation) -> repository (SQL only, always owner-scoped). Dependencies are passed in (`AppDeps`), never imported as singletons except the `#core` globals.
+- Config: every env var goes through `src/server/core/config.ts`. Nothing else reads `process.env`.
+- Validation: Zod schemas in `src/shared/schemas` are the contract for forms, tRPC input/output and OpenAPI.
+- Errors: throw `AppError` subclasses from services; middleware maps them to tRPC codes / HTTP statuses.
+- Logging: `Logger.child({ module })`, key=value metadata, never string interpolation. Request context is attached automatically.
+- Caching: opt in per query with `.use(cached({ ttlSeconds, scope }))`; invalidate with `Cache.invalidate(cachePrefix(path, owner))` in the mutating service.
+- Jobs: `defineJob` + register in `jobs.registry.ts`; handlers get `{ db, email, log }` and must be idempotent.
+- Schema changes: edit `*.table.ts`, run `pnpm db:generate`, commit the migration. Never `db:push`.
+- Tests: TDD. Colocated `*.test.ts(x)`. Server tests use PGlite (`createTestDb` / `createTestApp`), client tests use RTL + MSW (`renderWithProviders`, `trpcMock`). No network in unit tests.
+- Commits: Conventional Commits (`feat:` / `fix:` release; others do not).
+- Prefer a well-maintained library over hand-rolled code; check versions with the registry before adding one.

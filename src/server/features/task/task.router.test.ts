@@ -41,6 +41,14 @@ describe("task router", () => {
     expect(await alice.caller.task.list()).toHaveLength(0);
   });
 
+  it("keeps a client-generated id and maps duplicates to CONFLICT", async () => {
+    const id = crypto.randomUUID();
+    expect((await alice.caller.task.create({ id, title: "mine" })).id).toBe(id);
+    await expect(alice.caller.task.create({ id, title: "dupe" })).rejects.toMatchObject({
+      code: "CONFLICT",
+    });
+  });
+
   it("returns field errors for invalid input", async () => {
     try {
       await alice.caller.task.create({ title: "" });

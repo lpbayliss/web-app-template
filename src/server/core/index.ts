@@ -19,6 +19,7 @@ export { Context, type ContextValues } from "./context";
 export {
   AppError,
   type AppErrorOptions,
+  ConflictError,
   ForbiddenError,
   isAppError,
   NotFoundError,

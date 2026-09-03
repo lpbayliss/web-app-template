@@ -50,7 +50,9 @@
       "suspicious": {
         "noConsole": {
           "level": "error",
-          "options": { "allow": ["error"] }
+          "options": {
+            "allow": ["error"]
+          }
         },
         "noExplicitAny": "error"
       },
@@ -73,18 +75,35 @@
       "includes": ["**/*.test.ts", "**/*.test.tsx", "e2e/**", "src/test/**"],
       "linter": {
         "rules": {
-          "style": { "noNonNullAssertion": "off" },
-          "suspicious": { "noExplicitAny": "off" }
+          "style": {
+            "noNonNullAssertion": "off"
+          },
+          "suspicious": {
+            "noExplicitAny": "off"
+          }
         }
       }
     },
     {
-      "includes": ["src/server/db/reset.ts", "src/server/db/migrate.ts", "*.config.ts"],
+      "includes": [
+        "src/server/db/reset.ts",
+        "src/server/db/migrate.ts",
+        "src/server/db/seed.ts",
+        "scripts/**",
+        "*.config.ts"
+      ],
       "linter": {
         "rules": {
-          "suspicious": { "noConsole": "off" }
+          "suspicious": {
+            "noConsole": "off"
+          }
         }
       }
     }
-  ]
+  ],
+  "css": {
+    "parser": {
+      "tailwindDirectives": true
+    }
+  }
 }

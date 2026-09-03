@@ -6,5 +6,5 @@
     "jsx": "react-jsx",
     "types": ["vite/client", "@testing-library/jest-dom/vitest"]
   },
-  "include": ["src/client", "src/shared", "src/test/client"]
+  "include": ["src/client", "src/shared", "src/test/client", ".storybook"]
 }

@@ -4,7 +4,7 @@ import { z } from "zod";
  * Shared between the tRPC router (validation + OpenAPI output) and the client (forms, types).
  * Keep these free of server-only imports.
  */
-export const taskTitleSchema = z
+const taskTitleSchema = z
   .string()
   .trim()
   .min(1, "Title is required")
@@ -18,7 +18,8 @@ export const taskSchema = z.object({
   updatedAt: z.iso.datetime(),
 });
 
-export const createTaskInputSchema = z.object({ title: taskTitleSchema });
+/** Clients may supply the id so an optimistic row keeps its React key once persisted. */
+export const createTaskInputSchema = z.object({ id: z.uuid().optional(), title: taskTitleSchema });
 export const updateTaskInputSchema = z.object({
   id: z.uuid(),
   title: taskTitleSchema.optional(),

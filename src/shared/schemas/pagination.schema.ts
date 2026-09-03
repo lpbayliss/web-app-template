@@ -6,8 +6,6 @@ export const paginationInputSchema = z.object({
   offset: z.number().int().min(0).default(0),
 });
 
-export type PaginationInput = z.infer<typeof paginationInputSchema>;
-
 export function paginatedSchema<T extends z.ZodType>(item: T) {
   return z.object({
     items: z.array(item),

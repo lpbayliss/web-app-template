@@ -8,7 +8,7 @@ export interface PasswordResetEmailProps {
   expiresInMinutes: number;
 }
 
-export function PasswordResetEmail({ name, resetUrl, expiresInMinutes }: PasswordResetEmailProps) {
+function PasswordResetEmail({ name, resetUrl, expiresInMinutes }: PasswordResetEmailProps) {
   return (
     <EmailLayout preview="Reset your password">
       <Heading as="h1" style={{ fontSize: "22px" }}>

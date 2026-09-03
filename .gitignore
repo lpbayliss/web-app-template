@@ -1,0 +1,32 @@
+# dependencies
+node_modules/
+
+# build output
+dist/
+*.tsbuildinfo
+
+# env — commit only the examples
+.env
+.env.*
+!.env.example
+!.env.test
+
+# test artifacts
+coverage/
+playwright-report/
+test-results/
+blob-report/
+.pglite/
+
+# tooling caches
+.vite/
+.biome/
+*.log
+
+# editors / OS
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+.DS_Store
+Thumbs.db

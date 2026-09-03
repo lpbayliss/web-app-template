@@ -1,0 +1,16 @@
+# Single-package project: this file only carries pnpm settings (pnpm 10+ reads them here, not package.json).
+
+# Supply-chain guard: refuse versions published less than 3 days ago so a compromised
+# release is usually yanked before it can land here. Override per package with
+# minimumReleaseAgeExclude when you knowingly need a brand-new version.
+minimumReleaseAge: 4320
+
+# Only these packages may run postinstall scripts (false = silently skip).
+allowBuilds:
+  "@biomejs/biome": true
+  "@electric-sql/pglite": true
+  esbuild: true
+  lefthook: true
+  msw: true
+  msgpackr-extract: false # optional native accelerator for bullmq; the pure-JS fallback is fine
+  protobufjs: false # opentelemetry transitive; its postinstall only patches package metadata

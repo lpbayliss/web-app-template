@@ -1,0 +1,133 @@
+# Local development stack.
+#   docker compose up -d                          -> db, redis, mailpit (app runs on the host with `pnpm dev`)
+#   docker compose --profile app up               -> everything in containers (also used by .devcontainer)
+#   docker compose --profile test up -d           -> throwaway db-test / redis-test / mailpit-test for integration + e2e
+#   docker compose --profile observability up -d  -> jaeger (set OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318)
+
+name: web-app-template
+
+x-postgres: &postgres
+  image: postgres:17-alpine
+  healthcheck:
+    test: ["CMD-SHELL", "pg_isready -U app"]
+    interval: 5s
+    timeout: 3s
+    retries: 10
+
+x-redis: &redis
+  image: redis:8-alpine
+  command: ["redis-server", "--save", "", "--appendonly", "no", "--maxmemory-policy", "noeviction"]
+  healthcheck:
+    test: ["CMD", "redis-cli", "ping"]
+    interval: 5s
+    timeout: 3s
+    retries: 10
+
+x-mailpit: &mailpit
+  image: axllent/mailpit:latest
+  environment:
+    MP_SMTP_AUTH_ACCEPT_ANY: "1"
+    MP_SMTP_AUTH_ALLOW_INSECURE: "1"
+  healthcheck:
+    test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8025/readyz"]
+    interval: 5s
+    timeout: 3s
+    retries: 10
+
+services:
+  db:
+    <<: *postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app
+      POSTGRES_DB: app
+    ports:
+      - "5432:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+
+  redis:
+    <<: *redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+
+  mailpit:
+    <<: *mailpit
+    restart: unless-stopped
+    ports:
+      - "1025:1025" # SMTP
+      - "8025:8025" # Web UI + REST API (http://localhost:8025/api/v1/messages)
+
+  # ---- throwaway services for integration + e2e tests (different ports, no persistence) ----
+  db-test:
+    <<: *postgres
+    profiles: ["test"]
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app
+      POSTGRES_DB: app_test
+    ports:
+      - "5433:5432"
+    tmpfs:
+      - /var/lib/postgresql/data
+
+  redis-test:
+    <<: *redis
+    profiles: ["test"]
+    ports:
+      - "6380:6379"
+
+  mailpit-test:
+    <<: *mailpit
+    profiles: ["test"]
+    ports:
+      - "1026:1025"
+      - "8026:8025"
+
+  # ---- optional tracing backend ----
+  jaeger:
+    profiles: ["observability"]
+    image: jaegertracing/jaeger:2.11.0
+    ports:
+      - "16686:16686" # UI
+      - "4318:4318" # OTLP HTTP
+
+  # ---- full containerised dev (devcontainer) ----
+  app:
+    profiles: ["app"]
+    build:
+      context: .
+      target: dev
+    command: pnpm dev
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+      HOST: 0.0.0.0
+      LOG_LEVEL: debug
+      LOG_FORMAT: pretty
+      APP_URL: http://localhost:5173
+      DATABASE_URL: postgres://app:app@db:5432/app
+      REDIS_URL: redis://redis:6379
+      SMTP_URL: smtp://mailpit:1025
+      AUTH_SECRET: dev-only-secret-dev-only-secret-dev-only
+      ADMIN_EMAILS: admin@example.com
+    ports:
+      - "3000:3000"
+      - "5173:5173"
+      - "6006:6006" # storybook
+    volumes:
+      - .:/workspace
+      - app-node-modules:/workspace/node_modules
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mailpit:
+        condition: service_healthy
+
+volumes:
+  db-data:
+  app-node-modules:

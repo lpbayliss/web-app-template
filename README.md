@@ -1,1 +1,49 @@
 # web-app-template
+
+- Modern Node
+- TypeScript
+- PNPM
+- Biome
+- Github Workflows
+- Conventional Commits
+- Commit lint
+- Automated version bumps (semantic)
+- Version tagging git, update package.json
+- React
+- Vite
+- vitest
+- react-testing-library
+- playwright
+- tRPC
+- websockets
+- hono
+  - configured as though for production
+- react-intl or simmilar
+- tailwind
+- no monorepo
+- server serves UI
+- pre-commit/ pre-push hooks
+- pgsql
+- drizzle orm
+- zod schemas
+- better-auth
+- reaact-hook-form
+- motion (framer motion)
+- async-hook based context system, with winston logger
+  - Logger, and Context tools, importable globally
+  - use Context.set to add to context, automatically added to logger meta data.
+- Metrics global as well. Context, Logger, Metrics trifecta
+- custom pretty print for dev, human readable but optimised for agents
+- code coverage reports
+- TDD development pattern
+- no monorepo patterns, pnpm workspace
+- optimised docker build, published in workflow
+  - as lightweight as possible
+- zod based config with error handling and validation
+  - Config global I can access anywhere
+- docker based development
+- [name].[type].ts/extension convention for files
+  - example.service.ts
+  - example.component.ts
+  - example.hook.ts
+  - example.hook.test.ts

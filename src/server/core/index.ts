@@ -26,6 +26,6 @@ export {
   UnauthorizedError,
   ValidationError,
 } from "./errors";
-export { createLogger, type LogFormat, Logger, type LogLevel } from "./logger";
+export { type AppLogger, createLogger, type LogFormat, Logger, type LogLevel } from "./logger";
 export { createMetrics, Metrics, type MetricsRegistry } from "./metrics";
 export { createShutdown, type ShutdownHook, type ShutdownManager } from "./shutdown";

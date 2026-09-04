@@ -141,7 +141,7 @@ export function createCache(options: CacheOptions) {
       return await fn();
     } catch (error) {
       // A cache outage must never take the request down with it.
-      log.warn("cache operation failed", { op, error });
+      log.warn({ op, error }, "cache operation failed");
       outcomes.inc({ result: "error" });
       return fallback;
     }

@@ -22,7 +22,7 @@ export function createRedis(
     connectionName: `${Config.appName}:${options.name ?? "default"}`,
     retryStrategy: (times) => Math.min(times * 200, 5_000),
   });
-  client.on("error", (error) => log.error("redis error", { error }));
+  client.on("error", (error) => log.error({ error }, "redis error"));
   client.on("reconnecting", () => log.warn("redis reconnecting"));
   client.on("ready", () => log.debug("redis ready"));
   return client;

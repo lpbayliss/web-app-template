@@ -94,7 +94,7 @@ export function createApp(deps: AppDeps, options: AppOptions): Hono {
       createContext: ({ req }) => createContext({ headers: req.headers }),
       onError: ({ error, path }) => {
         if (error.code === "INTERNAL_SERVER_ERROR")
-          log.error("trpc internal error", { path, error });
+          log.error({ path, error }, "trpc internal error");
       },
     }),
   );
@@ -129,10 +129,10 @@ export function createApp(deps: AppDeps, options: AppOptions): Hono {
   app.onError((error, c) => {
     if (error instanceof HTTPException) return error.getResponse();
     if (isAppError(error)) {
-      log.warn("request failed", { code: error.code, status: error.status });
+      log.warn({ code: error.code, status: error.status }, "request failed");
       return c.json(error.toJSON(), error.status);
     }
-    log.error("unhandled error", { error });
+    log.error({ error }, "unhandled error");
     return c.json(
       {
         code: "INTERNAL_ERROR",

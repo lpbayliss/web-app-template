@@ -14,6 +14,6 @@ export const purgeExpiredSessionsJob = defineJob({
       .delete(schema.sessions)
       .where(lt(schema.sessions.expiresAt, cutoff))
       .returning({ id: schema.sessions.id });
-    log.info("expired sessions purged", { count: deleted.length, cutoff: cutoff.toISOString() });
+    log.info({ count: deleted.length, cutoff: cutoff.toISOString() }, "expired sessions purged");
   },
 });

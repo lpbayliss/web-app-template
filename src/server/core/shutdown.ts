@@ -27,14 +27,14 @@ export function createShutdown(options: { timeoutMs: number; exit?: (code: numbe
 
   const run = async (reason: string): Promise<number> => {
     let failed = false;
-    Logger.info("shutdown started", { reason, hooks: hooks.length });
+    Logger.info({ reason, hooks: hooks.length }, "shutdown started");
     for (const { name, hook } of [...hooks].reverse()) {
       try {
         await hook();
-        Logger.debug("shutdown hook finished", { hook: name });
+        Logger.debug({ hook: name }, "shutdown hook finished");
       } catch (error) {
         failed = true;
-        Logger.error("shutdown hook failed", { hook: name, error });
+        Logger.error({ hook: name, error }, "shutdown hook failed");
       }
     }
     return failed ? 1 : 0;
@@ -43,7 +43,7 @@ export function createShutdown(options: { timeoutMs: number; exit?: (code: numbe
   const trigger = (reason: string): Promise<void> => {
     if (running) return running;
     const timer = setTimeout(() => {
-      Logger.error("shutdown timed out, forcing exit", { timeoutMs: options.timeoutMs });
+      Logger.error({ timeoutMs: options.timeoutMs }, "shutdown timed out, forcing exit");
       exit(2);
     }, options.timeoutMs);
     timer.unref();
@@ -60,11 +60,11 @@ export function createShutdown(options: { timeoutMs: number; exit?: (code: numbe
       process.once(signal, () => void trigger(signal));
     }
     process.on("unhandledRejection", (reason) => {
-      Logger.error("unhandled rejection", { error: reason });
+      Logger.error({ error: reason }, "unhandled rejection");
       void trigger("unhandledRejection");
     });
     process.on("uncaughtException", (error) => {
-      Logger.error("uncaught exception", { error });
+      Logger.error({ error }, "uncaught exception");
       void trigger("uncaughtException");
     });
   };

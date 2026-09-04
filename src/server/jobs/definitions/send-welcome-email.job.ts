@@ -12,7 +12,7 @@ export const sendWelcomeEmailJob = defineJob({
     const user = await createUserRepository(db).findById(userId);
     if (!user) {
       // Deleted before we got to it: nothing to retry.
-      log.warn("welcome email skipped, user missing", { userId });
+      log.warn({ userId }, "welcome email skipped, user missing");
       return;
     }
     await email.send(user.email, welcomeEmail({ name: user.name, appUrl: Config.appUrl }));

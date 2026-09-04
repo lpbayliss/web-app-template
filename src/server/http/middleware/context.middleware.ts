@@ -48,7 +48,7 @@ export function contextMiddleware(): MiddlewareHandler {
         Metrics.httpRequestDuration.observe(labels, durationMs / 1000);
         c.header("X-Request-Id", requestId ?? "");
         const level = status >= 500 ? "error" : status >= 400 ? "warn" : "http";
-        log.log(level, "request completed", { status, durationMs, ip: clientIp(c) });
+        log[level]({ status, durationMs, ip: clientIp(c) }, "request completed");
       }
     });
   };

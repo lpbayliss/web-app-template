@@ -31,7 +31,7 @@ const app = createApp(deps, {
 });
 
 const server = serve({ fetch: app.fetch, port: Config.port, hostname: Config.host }, (info) => {
-  Logger.info("http listening", { host: info.address, port: info.port, url: Config.appUrl });
+  Logger.info({ host: info.address, port: info.port, url: Config.appUrl }, "http listening");
 }) as Server;
 shutdown.register(
   "http",

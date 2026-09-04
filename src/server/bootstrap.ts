@@ -57,17 +57,20 @@ export async function bootstrap() {
       await worker.close();
       await connection.quit();
     });
-    log.info("worker started", { jobs: ALL_JOBS.map((j) => j.name) });
+    log.info({ jobs: ALL_JOBS.map((j) => j.name) }, "worker started");
     return worker;
   };
 
-  log.info("bootstrapped", {
-    env: Config.nodeEnv,
-    version: Config.appVersion,
-    email: email.provider.name,
-    cache: Config.cache.enabled,
-    telemetry: Config.telemetry.enabled,
-  });
+  log.info(
+    {
+      env: Config.nodeEnv,
+      version: Config.appVersion,
+      email: email.provider.name,
+      cache: Config.cache.enabled,
+      telemetry: Config.telemetry.enabled,
+    },
+    "bootstrapped",
+  );
 
   return { deps, dbHandle, redis, shutdown, ready, startWorker };
 }

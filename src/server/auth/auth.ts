@@ -66,7 +66,7 @@ export function createAuth(deps: AuthDeps) {
             }
           },
           after: async (user) => {
-            log.info("user created", { userId: user.id });
+            log.info({ userId: user.id }, "user created");
             await deps.onUserCreated?.({ id: user.id, email: user.email, name: user.name });
           },
         },

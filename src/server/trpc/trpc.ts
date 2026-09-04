@@ -60,8 +60,8 @@ const observed = t.middleware(async ({ path, type, next }) => {
       })
     : result.error;
   end({ status: error.code });
-  if (error.code === "INTERNAL_SERVER_ERROR") log.error("procedure failed", { path, type, error });
-  else log.debug("procedure rejected", { path, type, code: error.code });
+  if (error.code === "INTERNAL_SERVER_ERROR") log.error({ path, type, error }, "procedure failed");
+  else log.debug({ path, type, code: error.code }, "procedure rejected");
   return { ...result, error };
 });
 

@@ -8,11 +8,14 @@ export function createNoopProvider(): EmailProvider {
     name: "noop",
     async send(message) {
       const id = `noop-${Date.now()}`;
-      log.info("email suppressed (noop provider)", {
-        to: message.to,
-        subject: message.subject,
-        id,
-      });
+      log.info(
+        {
+          to: message.to,
+          subject: message.subject,
+          id,
+        },
+        "email suppressed (noop provider)",
+      );
       return { id };
     },
   };

@@ -2,7 +2,7 @@
 
 A production-grade, single-package template for full-stack TypeScript apps. Everything the wishlist asked for is wired, tested and documented, with at least two examples of every pattern so the second one shows the convention.
 
-**Server**: Node 26 · Hono · tRPC 11 (HTTP + WebSocket subscriptions) · Drizzle ORM + Postgres · Better Auth (email/password, admin roles) · BullMQ + Redis jobs · Redis response cache · Resend / SMTP email with react-email templates · winston logs · Prometheus metrics · OpenTelemetry tracing · OpenAPI docs (Scalar) · Bull Board queue dashboard.
+**Server**: Node 26 · Hono · tRPC 11 (HTTP + WebSocket subscriptions) · Drizzle ORM + Postgres · Better Auth (email/password, admin roles) · BullMQ + Redis jobs · Redis response cache · Resend / SMTP email with react-email templates · pino logs · Prometheus metrics · OpenTelemetry tracing · OpenAPI docs (Scalar) · Bull Board queue dashboard.
 
 **Client**: React 19 · Vite 8 · TanStack Router + Query · Tailwind 4 · react-hook-form + Zod · motion · react-intl (en/de) · Storybook.
 
@@ -71,7 +71,7 @@ File names follow `kebab-name.type.ext`. See `CLAUDE.md` for the short list of c
 ## How the pieces fit
 
 - **Request lifecycle**: request-id → `Context.run` (AsyncLocalStorage) → security headers, CORS, CSRF, body limit, timeout, gzip → routes → SPA fallback → error handler. Every log line inside a request automatically carries `requestId`, `method`, `path`, `userId`.
-- **Globals** (`#core`): `Config` (Zod-validated env, fails fast with a readable list), `Context` (`set/get/snapshot`), `Logger` (winston; JSON in prod, single-line `key=value` in dev, trace ids injected by OpenTelemetry), `Metrics` (Prometheus at `/metrics`, optional bearer token), `Cache` (Redis, in-memory in tests).
+- **Globals** (`#core`): `Config` (Zod-validated env, fails fast with a readable list), `Context` (`set/get/snapshot`), `Logger` (pino; JSON in prod, single-line `key=value` in dev, trace ids injected by OpenTelemetry), `Metrics` (Prometheus at `/metrics`, optional bearer token), `Cache` (Redis, in-memory in tests).
 - **Auth**: Better Auth at `/api/auth/*` with cookie sessions and the admin plugin. `ADMIN_EMAILS` promotes sign-ups to admins. tRPC has `publicProcedure`, `protectedProcedure`, `adminProcedure`; `/admin/queues` is guarded by `adminGuard`.
 - **tRPC + REST + docs**: routers declare `meta.openapi`, so `/api/trpc` (typed client), `/api/v1/*` (REST), `/api/openapi.json` and `/api/docs` all come from one definition.
 - **WebSockets**: `activity.onEvent` streams the user's task events over `/api/ws` (tRPC `wsLink`, lazy connection, keep-alive, reconnect on deploy).
@@ -109,7 +109,7 @@ Every variable is validated in `src/server/core/config.ts`; `.env.example` docum
 | DB tests | PGlite | Testcontainers (real Postgres, needs Docker, slower) |
 | Queue | BullMQ | pg-boss (Postgres-only, no Redis), Graphile Worker |
 | Cache | Redis via ioredis | in-memory only (single instance), Dragonfly |
-| Logging | winston (requested) | pino (faster; `@opentelemetry/instrumentation-pino` exists too) |
+| Logging | pino (in-process `key=value` pretty printer, no worker transport) | winston (slower, callback-based formats) |
 | Metrics | `@prometheus-io/client` | OTLP metrics via the OTel SDK (set `OTEL_METRICS_EXPORTER=otlp`) |
 | Email | Resend + react-email, Mailpit locally | Postmark, SES; MailHog (unmaintained) |
 | OpenAPI | trpc-to-openapi + Scalar | `@hono/zod-openapi` for hand-written REST, Swagger UI |

@@ -32,7 +32,7 @@ export function createDb(url: string = Config.databaseUrl): DbHandle {
     schema,
     casing: "snake_case",
     logger: Config.isDevelopment
-      ? { logQuery: (query, params) => log.debug("query", { query, params }) }
+      ? { logQuery: (query, params) => log.debug({ query, params }, "query") }
       : false,
   });
   return {
@@ -42,7 +42,7 @@ export function createDb(url: string = Config.databaseUrl): DbHandle {
         await sql`select 1`;
         return true;
       } catch (error) {
-        log.warn("database ping failed", { error });
+        log.warn({ error }, "database ping failed");
         return false;
       }
     },

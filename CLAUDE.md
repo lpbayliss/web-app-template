@@ -15,7 +15,7 @@ Full-stack TypeScript template: Hono + tRPC (HTTP + WebSocket) + Drizzle/Postgre
 - Config: every env var goes through `src/server/core/config.ts`. Nothing else reads `process.env`.
 - Validation: Zod schemas in `src/shared/schemas` are the contract for forms, tRPC input/output and OpenAPI.
 - Errors: throw `AppError` subclasses from services; middleware maps them to tRPC codes / HTTP statuses.
-- Logging: `Logger.child({ module })`, key=value metadata, never string interpolation. Request context is attached automatically.
+- Logging: pino. `Logger.child({ module })`, metadata object first then the message (`log.info({ userId }, "user created")`), errors under `error`, never string interpolation. Request context is attached automatically.
 - Caching: opt in per query with `.use(cached({ ttlSeconds, scope }))`; invalidate with `Cache.invalidate(cachePrefix(path, owner))` in the mutating service.
 - Jobs: `defineJob` + register in `jobs.registry.ts`; handlers get `{ db, email, log }` and must be idempotent.
 - Schema changes: edit `*.table.ts`, run `pnpm db:generate`, commit the migration. Never `db:push`.

@@ -45,7 +45,6 @@
   "admin.banned": "Gesperrt",
   "admin.makeAdmin": "Zum Admin machen",
   "admin.makeUser": "Zum Benutzer machen",
-  "admin.queues": "Warteschlangen-Dashboard",
   "admin.queueStats": "Warteschlange",
   "admin.total": "{total, plural, one {# Benutzer} other {# Benutzer}}",
   "error.notFound": "Seite nicht gefunden",

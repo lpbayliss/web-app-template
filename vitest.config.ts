@@ -31,7 +31,6 @@ export default defineConfig({
         "src/server/db/reset.ts",
         "src/server/db/seed.ts",
         "src/server/db/migrations/**",
-        "src/server/http/queue-board.ts",
         "src/client/main.tsx",
         "src/client/app.component.tsx",
       ],

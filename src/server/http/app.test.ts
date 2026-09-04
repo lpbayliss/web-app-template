@@ -93,14 +93,4 @@ describe("HTTP app", () => {
     });
     expect(res.status).toBe(413);
   });
-
-  it("guards the admin queue dashboard", async () => {
-    const guarded = createApp(test.deps, {
-      ready: async () => true,
-      mount: (h) => h.get("/admin/queues", (c) => c.text("dashboard")),
-    });
-    expect((await guarded.request("/admin/queues")).status).toBe(401);
-    const { cookie } = await test.signUp({ email: "admin@example.com" });
-    expect((await guarded.request("/admin/queues", { headers: { cookie } })).status).toBe(200);
-  });
 });

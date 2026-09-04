@@ -12,7 +12,6 @@ export default defineConfig({
     proxy: {
       // The API server owns /api, including the WebSocket upgrade and auth cookies.
       "/api": { target: API_TARGET, changeOrigin: false, ws: true },
-      "/admin/queues": { target: API_TARGET, changeOrigin: false },
     },
   },
   build: {

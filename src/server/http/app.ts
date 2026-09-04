@@ -14,7 +14,6 @@ import { Config, isAppError, Logger } from "#core";
 import { appRouter } from "#server/trpc/app.router";
 import { type AppDeps, createContextFactory } from "#server/trpc/context";
 import { buildContentSecurityPolicy } from "./csp";
-import { adminGuard } from "./middleware/admin-guard.middleware";
 import { clientIp, contextMiddleware } from "./middleware/context.middleware";
 import { docsRoutes } from "./routes/docs.route";
 import { healthRoutes } from "./routes/health.route";
@@ -24,8 +23,6 @@ export interface AppOptions {
   ready: () => Promise<boolean>;
   /** Shared store so limits hold across instances. Defaults to in-memory (tests, single node). */
   rateLimitStore?: Store;
-  /** Extra mounts that need the Hono app (queue dashboard). */
-  mount?: (app: Hono) => void;
   /** Serve the built SPA from dist/client (production). */
   serveClient?: boolean;
 }
@@ -90,11 +87,6 @@ export function createApp(deps: AppDeps, options: AppOptions): Hono {
     }),
   );
   app.route("/", docsRoutes(createContext));
-
-  // ---- admin-only server-rendered surfaces ----
-  app.use("/admin/queues/*", adminGuard(deps.auth));
-  app.use("/admin/queues", adminGuard(deps.auth));
-  options.mount?.(app);
 
   // ---- SPA ----
   if (options.serveClient) {

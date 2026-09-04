@@ -1,18 +1,13 @@
 import { useIntl } from "react-intl";
 import { useQueueStats } from "./use-admin-users.hook";
 
-/** Live counts from BullMQ; the full dashboard lives at /admin/queues (server-rendered). */
+/** Live counts from BullMQ. The full dashboard is the Bull Board container (http://localhost:3003 in dev). */
 export function QueueStats() {
   const intl = useIntl();
   const stats = useQueueStats();
   return (
     <section className="rounded-card border border-line bg-surface-raised p-4">
-      <header className="mb-3 flex items-center justify-between">
-        <h2 className="font-semibold">{intl.formatMessage({ id: "admin.queueStats" })}</h2>
-        <a href="/admin/queues" className="text-sm text-accent underline-offset-2 hover:underline">
-          {intl.formatMessage({ id: "admin.queues" })}
-        </a>
-      </header>
+      <h2 className="mb-3 font-semibold">{intl.formatMessage({ id: "admin.queueStats" })}</h2>
       <dl className="grid grid-cols-3 gap-3 text-sm sm:grid-cols-6">
         {Object.entries(stats.data ?? {}).map(([state, count]) => (
           <div key={state}>

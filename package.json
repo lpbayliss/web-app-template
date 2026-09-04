@@ -50,8 +50,6 @@
   },
   "dependencies": {
     "@better-auth/drizzle-adapter": "^1.7.2",
-    "@bull-board/api": "^9.6.0",
-    "@bull-board/hono": "^9.6.0",
     "@hono/node-server": "^2.1.1",
     "@hono/trpc-server": "^0.4.2",
     "@hookform/resolvers": "^5.9.1",

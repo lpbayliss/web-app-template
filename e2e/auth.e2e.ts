@@ -34,8 +34,5 @@ test.describe("authentication", () => {
     await register(page, uniqueUser("member"));
     await page.goto("/admin");
     await expect(page).toHaveURL(/\/$/);
-    // Navigate with the browser: the session cookie is Secure-prefixed, which APIRequestContext drops over http.
-    const res = await page.goto("/admin/queues");
-    expect(res?.status()).toBe(403);
   });
 });

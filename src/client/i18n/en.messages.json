@@ -45,7 +45,6 @@
   "admin.banned": "Banned",
   "admin.makeAdmin": "Make admin",
   "admin.makeUser": "Make user",
-  "admin.queues": "Queue dashboard",
   "admin.queueStats": "Queue",
   "admin.total": "{total, plural, one {# user} other {# users}}",
   "error.notFound": "Page not found",

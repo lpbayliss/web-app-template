@@ -9,7 +9,6 @@ import { RedisStore } from "hono-rate-limiter";
 import { Config, Logger } from "#core";
 import { bootstrap } from "./bootstrap";
 import { createApp } from "./http/app";
-import { mountQueueBoard } from "./http/queue-board";
 import { createWsServer } from "./ws/ws.server";
 
 const { deps, redis, shutdown, ready, startWorker } = await bootstrap();
@@ -17,7 +16,6 @@ const { deps, redis, shutdown, ready, startWorker } = await bootstrap();
 const app = createApp(deps, {
   ready,
   serveClient: Config.isProduction,
-  mount: (hono) => mountQueueBoard(hono, deps.jobs),
   rateLimitStore: new RedisStore({
     prefix: `${Config.appName}:rl:`,
     client: {

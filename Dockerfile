@@ -9,7 +9,7 @@
 #
 # Build:   docker build -t web-app-template --build-arg APP_VERSION=$(node -p "require('./package.json').version") .
 # Run:     docker run --rm -p 3000:3000 --env-file .env web-app-template
-# Worker:  docker run --rm --env-file .env web-app-template node dist/server/worker.js
+# Worker:  docker run --rm --env-file .env web-app-template node --import ./dist/server/instrumentation.js dist/server/worker.js
 # Migrate: docker run --rm --env-file .env web-app-template node dist/server/migrate.js
 
 ARG NODE_VERSION=26
@@ -67,4 +67,4 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
   CMD wget -qO- http://127.0.0.1:${PORT}/healthz || exit 1
 ENTRYPOINT ["/sbin/tini", "--"]
-CMD ["node", "--import", "@opentelemetry/auto-instrumentations-node/register", "dist/server/main.js"]
+CMD ["node", "--import", "./dist/server/instrumentation.js", "dist/server/main.js"]

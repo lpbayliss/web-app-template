@@ -74,6 +74,9 @@ importers:
       hono-rate-limiter:
         specifier: ^0.5.3
         version: 0.5.3(hono@4.13.5)
+      import-in-the-middle:
+        specifier: ^3.4.0
+        version: 3.4.0
       ioredis:
         specifier: ^6.0.0
         version: 6.0.0

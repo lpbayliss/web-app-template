@@ -12,15 +12,20 @@
 import { register as registerAsyncHook } from "node:module";
 import { register, supportsSyncHooks } from "import-in-the-middle/register-hooks.mjs";
 
-/** Wrap dependencies only; the app's own modules (src in dev, dist in prod) are left untouched. */
-const excludeAppModules = [/\/(src|dist)\//];
+/**
+ * Wrap dependencies only; the app's own modules are left untouched. An exclude pattern for
+ * `src`/`dist` would also exclude dependencies that ship under those directory names inside
+ * their own package (e.g. `node_modules/bullmq/dist/esm/index.js`,
+ * `node_modules/@trpc/client/dist/index.mjs`), so this is an include allowlist instead.
+ */
+const dependencies = [/\/node_modules\//];
 
 if (supportsSyncHooks()) {
-  register({ exclude: excludeAppModules });
+  register({ include: dependencies });
 } else {
   // Older Node 24: the loader runs on a separate thread, so only serialisable options work.
   registerAsyncHook("import-in-the-middle/hook.mjs", import.meta.url, {
-    data: { exclude: excludeAppModules },
+    data: { include: dependencies },
   });
 }
 

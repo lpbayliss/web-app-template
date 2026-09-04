@@ -1,9 +1,20 @@
 /**
  * The server-wide globals. Import from "#core" anywhere on the server:
  *
- *   import { Config, Context, Logger, Metrics } from "#core";
+ *   import { Analytics, Config, Context, Logger, Metrics } from "#core";
  */
 
+export {
+  Analytics,
+  type AnalyticsApi,
+  type AnalyticsEvent,
+  type AnalyticsProps,
+  type AnalyticsProvider,
+  type AnalyticsValue,
+  createAnalytics,
+  createUmamiProvider,
+  noopProvider,
+} from "./analytics";
 export {
   Cache,
   type CacheApi,

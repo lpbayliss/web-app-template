@@ -114,7 +114,7 @@ services:
     restart: "no"
     environment:
       UMAMI_URL: http://umami:3000
-      WEBSITE_ID: 6ef283e9-def7-423a-9a9a-5682722e1daf # = ANALYTICS_WEBSITE_ID in .env.example
+      WEBSITE_ID: 6ef283e9-def7-423a-9a9a-5682722e1daf # = ANALYTICS_WEBSITE_ID in .env.development
     volumes:
       - ./docker/umami/seed.sh:/scripts/seed.sh:ro
     entrypoint: ["sh", "/scripts/seed.sh"]

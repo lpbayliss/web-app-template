@@ -55,7 +55,7 @@ Prerequisites: Node 24 or newer, pnpm 11 (the repo pins its own version), Docker
 
 ```bash
 pnpm install
-cp .env.example .env
+# optional: create .env to override .env.development (e.g. AUTH_SECRET)
 docker compose up -d      # data services + dev tool UIs (see below)
 pnpm db:migrate
 pnpm db:seed              # admin@example.com / admin-password-123, user@example.com / user-password-123
@@ -141,7 +141,7 @@ File names follow `kebab-name.type.ext`. See `CLAUDE.md` for the short list of c
 
 ## Configuration
 
-Every variable goes through `src/server/core/config.ts` and is validated at boot, so a bad `.env` fails immediately with a readable list of problems. `.env.example` documents each one.
+Every variable goes through `src/server/core/config.ts` and is validated at boot, so a bad value fails immediately with a readable list of problems. `.env.development` (committed) documents each one and holds the values for the Docker dev stack; the dev scripts load it first, then an optional git-ignored `.env` for personal overrides, and the shell environment wins over both. Production loads only `.env`.
 
 | Variable | Default | Purpose |
 | --- | --- | --- |

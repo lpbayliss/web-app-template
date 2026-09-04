@@ -8,7 +8,7 @@ description: Start or check the local development stack (Postgres, Redis, Mailpi
 ## Start
 
 1. Infrastructure (idempotent): `docker compose up -d` then `docker compose ps -a` — `db`, `redis`, `mailpit`, `umami` must be `healthy`, the other tools `running`, and the one-shots `umami-db-init` / `umami-seed` `exited (0)`. Low on memory? `docker compose up -d db redis mailpit` is enough for the app itself.
-2. First run only: `cp .env.example .env` and `pnpm db:migrate` (optionally `pnpm db:seed` for `admin@example.com` / `admin-password-123`).
+2. First run only: `pnpm db:migrate`. Config comes from the committed `.env.development`; an optional `.env` overrides it, and shell variables override both. Never edit the user's `.env` (optionally `pnpm db:seed` for `admin@example.com` / `admin-password-123`).
 3. App: `pnpm dev` in the background (`run_in_background: true`). It runs the API (`tsx watch`, :3000) and Vite (:5173) together; logs are prefixed `[server]` / `[client]`.
 
 ## Verify

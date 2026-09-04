@@ -10,7 +10,7 @@
 
 ```bash
 pnpm install
-cp .env.example .env
+# optional: create .env to override .env.development (e.g. AUTH_SECRET)
 docker compose up -d
 pnpm db:migrate
 pnpm dev
@@ -33,7 +33,7 @@ pnpm dev
 
 ## Common changes
 
-- **New environment variable**: add it to the schema in `src/server/core/config.ts`, document it in `.env.example`, add a row to the README's Configuration table. Nothing else reads `process.env`.
+- **New environment variable**: add it to the schema in `src/server/core/config.ts`, document it in `.env.development` (with its dev-stack value), add a row to the README's Configuration table. Nothing else reads `process.env`.
 - **New job**: `defineJob({ name, schema, handle })` in `src/server/jobs/definitions/*.job.ts`, then register it in `src/server/jobs/jobs.registry.ts`. Handlers must be idempotent.
 - **Schema change**: edit the `*.table.ts` file, run `pnpm db:generate`, commit the generated migration. Never `db:push`.
 - **New analytics event**: call `Analytics.track("noun.verb_past", { userId, ...props })` from the service that owns the change. Fire and forget, never awaited.

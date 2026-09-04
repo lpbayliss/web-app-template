@@ -35,7 +35,7 @@
     "5540": { "label": "RedisInsight" },
     "8025": { "label": "Mailpit" }
   },
-  "postCreateCommand": "pnpm install --frozen-lockfile && pnpm exec playwright install --with-deps chromium && cp -n .env.example .env || true",
+  "postCreateCommand": "pnpm install --frozen-lockfile && pnpm exec playwright install --with-deps chromium",
   "postStartCommand": "pnpm db:migrate",
   "customizations": {
     "vscode": {

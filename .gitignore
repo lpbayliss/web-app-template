@@ -5,10 +5,10 @@ node_modules/
 dist/
 *.tsbuildinfo
 
-# env — commit only the examples
+# env — commit only the dev and test defaults; .env is the personal override
 .env
 .env.*
-!.env.example
+!.env.development
 !.env.test
 
 # test artifacts

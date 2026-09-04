@@ -35,6 +35,9 @@ export interface UmamiProviderOptions {
   fetch?: typeof fetch;
 }
 
+/** A wedged Umami instance must not hold a request or job open indefinitely. */
+const UMAMI_TIMEOUT_MS = 5_000;
+
 /**
  * Umami's collect endpoint (`POST /api/send`). Umami drops requests whose User-Agent looks like
  * a bot, so self-hosted instances receiving server events need `DISABLE_BOT_CHECK=1`.
@@ -47,6 +50,7 @@ export function createUmamiProvider(options: UmamiProviderOptions): AnalyticsPro
       const response = await post(`${options.url}/api/send`, {
         method: "POST",
         headers: { "content-type": "application/json", "user-agent": options.userAgent },
+        signal: AbortSignal.timeout(UMAMI_TIMEOUT_MS),
         body: JSON.stringify({
           type: "event",
           payload: {
@@ -90,14 +94,21 @@ export function createAnalytics(provider: AnalyticsProvider) {
         data,
         ...(resolvedUserId !== undefined ? { userId: resolvedUserId } : {}),
       };
-      provider.send(event).then(
-        () => outcomes.inc({ result: "sent" }),
-        (error: unknown) => {
-          // Analytics must never take a request or job down with it.
-          outcomes.inc({ result: "error" });
-          log.warn({ event: name, error }, "analytics event failed");
-        },
-      );
+      const onSent = () => outcomes.inc({ result: "sent" });
+      const onFailed = (error: unknown) => {
+        // Analytics must never take a request or job down with it.
+        outcomes.inc({ result: "error" });
+        log.warn({ event: name, error }, "analytics event failed");
+      };
+      try {
+        // provider.send may throw synchronously or return a non-thenable; Promise.resolve
+        // normalizes both, and the trailing .catch guards against a throw inside the handlers.
+        Promise.resolve(provider.send(event))
+          .then(onSent, onFailed)
+          .catch(() => {});
+      } catch (error) {
+        onFailed(error);
+      }
     },
   };
 }

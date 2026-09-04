@@ -1,5 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
-import { Analytics, createAnalytics, createUmamiProvider, noopProvider } from "./analytics";
+import {
+  Analytics,
+  type AnalyticsProvider,
+  createAnalytics,
+  createUmamiProvider,
+  noopProvider,
+} from "./analytics";
 import { Context } from "./context";
 import { Metrics } from "./metrics";
 
@@ -27,6 +33,7 @@ describe("createUmamiProvider", () => {
       expect.objectContaining({
         method: "POST",
         headers: { "content-type": "application/json", "user-agent": "web-app-template/1.2.3" },
+        signal: expect.any(AbortSignal),
       }),
     );
     const body = JSON.parse(String((fetch.mock.calls[0]![1] as RequestInit).body));
@@ -97,6 +104,37 @@ describe("createAnalytics", () => {
     expect(() => analytics.track("task.created")).not.toThrow();
     await flush();
     expect(await Metrics.render()).toContain('analytics_events_total{result="error"}');
+  });
+
+  it("swallows a provider that throws synchronously and counts it as an error", async () => {
+    const analytics = createAnalytics({
+      name: "sync-broken",
+      send: () => {
+        throw new Error("sync");
+      },
+    } as unknown as AnalyticsProvider);
+    expect(() => analytics.track("task.created")).not.toThrow();
+    await flush();
+    expect(await Metrics.render()).toContain('analytics_events_total{result="error"}');
+  });
+
+  it("never produces an unhandled rejection, even when the provider throws synchronously", async () => {
+    const onUnhandled = vi.fn();
+    process.on("unhandledRejection", onUnhandled);
+    try {
+      const analytics = createAnalytics({
+        name: "sync-broken",
+        send: () => {
+          throw new Error("sync");
+        },
+      } as unknown as AnalyticsProvider);
+      analytics.track("task.created");
+      await flush();
+      await flush();
+      expect(onUnhandled).not.toHaveBeenCalled();
+    } finally {
+      process.off("unhandledRejection", onUnhandled);
+    }
   });
 });
 

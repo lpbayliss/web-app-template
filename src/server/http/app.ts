@@ -37,18 +37,19 @@ export function createApp(deps: AppDeps, options: AppOptions): Hono {
   const app = new Hono();
   const createContext = createContextFactory(deps);
   const isDocs = (path: string) => path.startsWith("/api/docs");
+  const secureHeadersMiddleware = secureHeaders({
+    contentSecurityPolicy: buildContentSecurityPolicy(Config.analytics),
+    referrerPolicy: "strict-origin-when-cross-origin",
+    crossOriginEmbedderPolicy: false,
+    strictTransportSecurity: Config.isProduction ? "max-age=31536000; includeSubDomains" : false,
+  });
 
   app.use(requestId());
   app.use(contextMiddleware());
   app.use(async (c, next) => {
     // The docs page loads Scalar from a CDN, so it gets a looser policy than the SPA/API.
     if (isDocs(c.req.path)) return next();
-    return secureHeaders({
-      contentSecurityPolicy: buildContentSecurityPolicy(Config.analytics),
-      referrerPolicy: "strict-origin-when-cross-origin",
-      crossOriginEmbedderPolicy: false,
-      strictTransportSecurity: Config.isProduction ? "max-age=31536000; includeSubDomains" : false,
-    })(c, next);
+    return secureHeadersMiddleware(c, next);
   });
   app.use(cors({ origin: Config.appUrl, credentials: true, maxAge: 600 }));
   app.use(csrf({ origin: Config.appUrl }));

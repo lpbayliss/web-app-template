@@ -1,8 +1,23 @@
-# Local development stack.
-#   docker compose up -d                       -> data services + a UI for each of them (see README "What's running")
-#   docker compose up -d db redis mailpit      -> just the data services (low-memory machines)
-#   docker compose --profile app up            -> everything in containers, app included (also used by .devcontainer)
-#   docker compose --profile test up -d        -> throwaway db-test / redis-test / mailpit-test for integration + e2e
+# Local development, release verification and e2e stacks.
+#
+# Profiles (see docs/superpowers/specs/2026-09-05-dev-and-release-stacks-design.md):
+#   (default)  db, redis, mailpit                                       the data services the app needs
+#   tools      grafana, umami, bull-board, redisinsight, drizzle-gateway  one UI per connected system
+#   stack      stack-init, app, worker                                  the built prod image, no bind mounts
+#   test       db-test, redis-test, mailpit-test                        throwaway data services for integration tests
+#   e2e        the *-test services + e2e-init, e2e-app, e2e-worker      the prod image pointed at them
+#
+# Driven by pnpm (package.json); the raw commands are:
+#   pnpm dev:core   docker compose up -d                    + API/worker/Vite on the host
+#   pnpm dev        docker compose --profile tools up -d     + API/worker/Vite on the host
+#   pnpm stack:up   docker compose --profile tools --profile stack up -d --build --wait
+#   pnpm stack:e2e  docker compose --profile e2e up -d --build --wait
+#                   docker compose --profile test up -d      integration tests (vitest)
+#
+# The API, worker and Vite run as *host* processes in `pnpm dev`: inotify events do not cross a
+# Docker Desktop bind mount from the Windows filesystem, so watching source from inside a container
+# would need polling. The `stack` profile gives the realistic two-container topology instead, and
+# deliberately publishes the same host ports as `pnpm dev` (3000, 3010) -- run one or the other.
 
 name: web-app-template
 
@@ -34,6 +49,71 @@ x-mailpit: &mailpit
     timeout: 3s
     retries: 10
 
+# The image the `stack` and `e2e` profiles run. Named explicitly so CI can pre-build it with layer
+# caching and compose reuses it when `--build` is not passed.
+x-app-image: &app-image
+  image: web-app-template:local
+  build:
+    context: .
+    target: prod
+
+# Production-shaped environment for the `stack` profile. Written out rather than pulled from
+# .env.development on purpose: these containers reach each other by service name, not localhost.
+x-stack-env: &stack-env
+  NODE_ENV: production
+  PORT: "3000"
+  WORKER_PORT: "3010"
+  HOST: 0.0.0.0
+  LOG_LEVEL: info
+  LOG_FORMAT: json
+  APP_URL: http://localhost:3000
+  DATABASE_URL: postgres://app:app@db:5432/app
+  REDIS_URL: redis://redis:6379
+  AUTH_SECRET: dev-only-secret-dev-only-secret-dev-only
+  ADMIN_EMAILS: admin@example.com
+  RATE_LIMIT_AUTH_MAX: "20"
+  RATE_LIMIT_AUTH_WINDOW_MS: "60000"
+  CACHE_ENABLED: "true"
+  CACHE_DEFAULT_TTL_S: "60"
+  JOBS_INLINE: "false" # the worker is its own container here, as in production
+  EMAIL_FROM: App <no-reply@example.com>
+  SMTP_URL: smtp://mailpit:1025
+  TRUST_PROXY: "false"
+  ANALYTICS_URL: http://localhost:3002
+  ANALYTICS_SERVER_URL: http://umami:3000 # umami's published port is not reachable from inside the network
+  ANALYTICS_WEBSITE_ID: 6ef283e9-def7-423a-9a9a-5682722e1daf
+  OTEL_SDK_DISABLED: "false"
+  OTEL_SERVICE_NAME: web-app-template # the worker reports as <name>-worker (src/server/core/telemetry-scope.ts)
+  OTEL_EXPORTER_OTLP_ENDPOINT: http://grafana:4318
+  OTEL_TRACES_EXPORTER: otlp
+  OTEL_METRICS_EXPORTER: none # metrics are scraped from GET /metrics by the same container
+  OTEL_LOGS_EXPORTER: otlp
+
+# Same image, pointed at the throwaway *-test services. Mirrors .env.test and the env
+# playwright.config.ts used to pass to its webServer; NODE_ENV=production because the server only
+# serves the built SPA in production (src/server/main.ts).
+x-e2e-env: &e2e-env
+  NODE_ENV: production
+  PORT: "3000"
+  WORKER_PORT: "3010"
+  HOST: 0.0.0.0
+  LOG_LEVEL: warn
+  LOG_FORMAT: pretty
+  APP_URL: http://127.0.0.1:3100
+  DATABASE_URL: postgres://app:app@db-test:5432/app_test
+  REDIS_URL: redis://redis-test:6379
+  AUTH_SECRET: test-secret-test-secret-test-secret-test-secret
+  ADMIN_EMAILS: admin@example.com
+  RATE_LIMIT_AUTH_MAX: "1000" # e2e signs up repeatedly from one IP
+  RATE_LIMIT_AUTH_WINDOW_MS: "60000"
+  CACHE_ENABLED: "true"
+  CACHE_DEFAULT_TTL_S: "60"
+  JOBS_INLINE: "false" # e2e now crosses Redis into the real e2e-worker container
+  EMAIL_FROM: Test <no-reply@example.test>
+  SMTP_URL: smtp://mailpit-test:1025
+  TRUST_PROXY: "false"
+  OTEL_SDK_DISABLED: "true"
+
 services:
   # ---- data services the app connects to ----
   db:
@@ -61,30 +141,32 @@ services:
       - "1025:1025" # SMTP
       - "8025:8025" # Web UI + REST API (http://localhost:8025/api/v1/messages)
 
-  # ---- dev tools: one UI per connected system ----
+  # ---- dev tools: one UI per connected system (profile: tools) ----
   grafana:
     # Grafana + Loki (logs) + Tempo (traces) + Prometheus (metrics) + OTel collector in one image.
     image: grafana/otel-lgtm:latest
+    profiles: ["tools"]
     restart: unless-stopped
     ports:
       - "3001:3000" # Grafana UI (anonymous admin)
       - "4317:4317" # OTLP gRPC
       - "4318:4318" # OTLP HTTP (OTEL_EXPORTER_OTLP_ENDPOINT)
     volumes:
-      - ./docker/otel-lgtm/prometheus.yaml:/otel-lgtm/prometheus.yaml:ro
-      - ./docker/otel-lgtm/grafana-dashboards.yaml:/otel-lgtm/grafana/conf/provisioning/dashboards/web-app-template.yaml:ro
-      - ./docker/otel-lgtm/dashboards:/otel-lgtm/dashboards:ro
+      - ./infrastructure/observability/prometheus/prometheus.yaml:/otel-lgtm/prometheus.yaml:ro
+      - ./infrastructure/observability/grafana/provisioning/dashboards.yaml:/otel-lgtm/grafana/conf/provisioning/dashboards/web-app-template.yaml:ro
+      - ./infrastructure/observability/grafana/dashboards:/otel-lgtm/dashboards:ro
       - grafana-data:/data
     extra_hosts:
       - "host.docker.internal:host-gateway" # lets Prometheus scrape `pnpm dev` on Linux too
 
   umami-db-init:
     image: postgres:17-alpine
+    profiles: ["tools"]
     restart: "no"
     environment:
       PGPASSWORD: app
     volumes:
-      - ./docker/umami/create-db.sh:/scripts/create-db.sh:ro
+      - ./infrastructure/analytics/umami/create-db.sh:/scripts/create-db.sh:ro
     command: ["sh", "/scripts/create-db.sh"]
     depends_on:
       db:
@@ -92,6 +174,7 @@ services:
 
   umami:
     image: ghcr.io/umami-software/umami:postgresql-latest
+    profiles: ["tools"]
     restart: unless-stopped
     ports:
       - "3002:3000" # UI (admin / umami)
@@ -113,12 +196,13 @@ services:
 
   umami-seed:
     image: curlimages/curl:latest
+    profiles: ["tools"]
     restart: "no"
     environment:
       UMAMI_URL: http://umami:3000
       WEBSITE_ID: 6ef283e9-def7-423a-9a9a-5682722e1daf # = ANALYTICS_WEBSITE_ID in .env.development
     volumes:
-      - ./docker/umami/seed.sh:/scripts/seed.sh:ro
+      - ./infrastructure/analytics/umami/seed.sh:/scripts/seed.sh:ro
     entrypoint: ["sh", "/scripts/seed.sh"]
     depends_on:
       umami:
@@ -126,6 +210,7 @@ services:
 
   bull-board:
     image: ghcr.io/felixmosh/bull-board:latest
+    profiles: ["tools"]
     restart: unless-stopped
     # --prefix must match the app's BullMQ prefix `${APP_NAME}:bull` (src/server/jobs/queue.ts)
     command: ["--redis", "redis://redis:6379", "--prefix", "web-app-template:bull"]
@@ -137,6 +222,7 @@ services:
 
   redisinsight:
     image: redis/redisinsight:latest
+    profiles: ["tools"]
     restart: unless-stopped
     ports:
       - "5540:5540"
@@ -154,6 +240,7 @@ services:
   drizzle-gateway:
     # Standalone Drizzle Studio. Add the connection once in the UI: postgres://app:app@db:5432/app
     image: ghcr.io/drizzle-team/gateway:latest
+    profiles: ["tools"]
     restart: unless-stopped
     ports:
       - "4983:4983"
@@ -166,10 +253,67 @@ services:
       db:
         condition: service_healthy
 
+  # ---- release stack: the built prod image, no bind mounts (profile: stack) ----
+  stack-init:
+    <<: *app-image
+    profiles: ["stack"]
+    restart: "no"
+    # The migration-job shape a real deployment uses: run to completion, then the app starts.
+    command: ["node", "dist/server/migrate.js"]
+    environment: *stack-env
+    depends_on:
+      db:
+        condition: service_healthy
+
+  app:
+    <<: *app-image
+    profiles: ["stack"]
+    restart: unless-stopped
+    # Default image CMD: node --import ./dist/server/instrumentation.js dist/server/main.js
+    environment: *stack-env
+    ports:
+      - "3000:3000" # API + the SPA it serves; the same host port as `pnpm dev`
+    healthcheck:
+      test: ["CMD", "wget", "-qO", "-", "http://127.0.0.1:3000/readyz"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 10s
+    depends_on:
+      stack-init:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+      mailpit:
+        condition: service_healthy
+
+  worker:
+    <<: *app-image
+    profiles: ["stack"]
+    restart: unless-stopped
+    # ENTRYPOINT is tini, so a command override supplies only the node invocation.
+    command: ["node", "--import", "./dist/server/instrumentation.js", "dist/server/worker.js"]
+    environment: *stack-env
+    ports:
+      - "3010:3010" # worker /healthz, /readyz and /metrics
+    healthcheck:
+      test: ["CMD", "wget", "-qO", "-", "http://127.0.0.1:3010/readyz"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 10s
+    depends_on:
+      stack-init:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+      mailpit:
+        condition: service_healthy
+
   # ---- throwaway services for integration + e2e tests (different ports, no persistence) ----
   db-test:
     <<: *postgres
-    profiles: ["test"]
+    profiles: ["test", "e2e"]
     environment:
       POSTGRES_USER: app
       POSTGRES_PASSWORD: app
@@ -181,63 +325,73 @@ services:
 
   redis-test:
     <<: *redis
-    profiles: ["test"]
+    profiles: ["test", "e2e"]
     ports:
       - "6380:6379"
 
   mailpit-test:
     <<: *mailpit
-    profiles: ["test"]
+    profiles: ["test", "e2e"]
     ports:
       - "1026:1025"
       - "8026:8025"
 
-  # ---- full containerised dev (devcontainer) ----
-  app:
-    profiles: ["app"]
-    build:
-      context: .
-      target: dev
-    command: pnpm dev
-    environment:
-      NODE_ENV: development
-      PORT: 3000
-      HOST: 0.0.0.0
-      LOG_LEVEL: debug
-      LOG_FORMAT: pretty
-      APP_URL: http://localhost:5173
-      DATABASE_URL: postgres://app:app@db:5432/app
-      REDIS_URL: redis://redis:6379
-      SMTP_URL: smtp://mailpit:1025
-      AUTH_SECRET: dev-only-secret-dev-only-secret-dev-only
-      ADMIN_EMAILS: admin@example.com
-      ANALYTICS_URL: http://localhost:3002
-      ANALYTICS_SERVER_URL: http://umami:3000
-      ANALYTICS_WEBSITE_ID: 6ef283e9-def7-423a-9a9a-5682722e1daf
-      OTEL_SDK_DISABLED: "false"
-      OTEL_SERVICE_NAME: web-app-template
-      OTEL_EXPORTER_OTLP_ENDPOINT: http://grafana:4318
-      OTEL_TRACES_EXPORTER: otlp
-      OTEL_METRICS_EXPORTER: none
-      OTEL_LOGS_EXPORTER: otlp
-    ports:
-      - "3000:3000"
-      - "5173:5173"
-      - "6006:6006" # storybook
-    volumes:
-      - .:/workspace
-      - app-node-modules:/workspace/node_modules
+  # ---- e2e: the same prod image pointed at the *-test services (profile: e2e) ----
+  e2e-init:
+    <<: *app-image
+    profiles: ["e2e"]
+    restart: "no"
+    command: ["node", "dist/server/migrate.js"]
+    environment: *e2e-env
     depends_on:
-      db:
+      db-test:
         condition: service_healthy
-      redis:
+
+  e2e-app:
+    <<: *app-image
+    profiles: ["e2e"]
+    restart: "no" # a crash should fail `--wait` straight away rather than loop
+    environment: *e2e-env
+    ports:
+      - "3100:3000" # = PORT / APP_URL in .env.test, which Playwright uses as its baseURL
+    healthcheck:
+      test: ["CMD", "wget", "-qO", "-", "http://127.0.0.1:3000/readyz"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+      start_period: 5s
+    depends_on:
+      e2e-init:
+        condition: service_completed_successfully
+      redis-test:
         condition: service_healthy
-      mailpit:
+      mailpit-test:
+        condition: service_healthy
+
+  e2e-worker:
+    <<: *app-image
+    profiles: ["e2e"]
+    restart: "no"
+    command: ["node", "--import", "./dist/server/instrumentation.js", "dist/server/worker.js"]
+    environment: *e2e-env
+    ports:
+      - "3110:3010"
+    healthcheck:
+      test: ["CMD", "wget", "-qO", "-", "http://127.0.0.1:3010/readyz"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+      start_period: 5s
+    depends_on:
+      e2e-init:
+        condition: service_completed_successfully
+      redis-test:
+        condition: service_healthy
+      mailpit-test:
         condition: service_healthy
 
 volumes:
   db-data:
-  app-node-modules:
   grafana-data:
   redisinsight-data:
   drizzle-gateway-data:

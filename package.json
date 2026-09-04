@@ -18,9 +18,16 @@
     "#test/*": "./src/test/*"
   },
   "scripts": {
-    "dev": "concurrently -n server,client -c blue,green \"pnpm dev:server\" \"pnpm dev:client\"",
+    "dev": "docker compose --profile tools up -d && pnpm dev:app",
+    "dev:core": "docker compose up -d && pnpm dev:app",
+    "dev:app": "concurrently -n server,worker,client -c blue,magenta,green \"pnpm dev:server\" \"pnpm dev:worker\" \"pnpm dev:client\"",
     "dev:server": "node --env-file=.env.development --env-file-if-exists=.env --import tsx --import ./src/server/instrumentation.ts --watch src/server/main.ts",
     "dev:client": "vite",
+    "stack:up": "docker compose --profile tools up -d && docker compose --profile stack up -d --build --wait --wait-timeout 180 app worker",
+    "stack:logs": "docker compose logs -f app worker",
+    "stack:down": "docker compose --profile stack rm -sf stack-init app worker",
+    "stack:e2e": "docker compose --profile e2e up -d --build --wait --wait-timeout 180 e2e-app e2e-worker",
+    "stack:e2e:down": "docker compose --profile e2e rm -sf e2e-init e2e-app e2e-worker db-test redis-test mailpit-test",
     "build": "pnpm build:client && pnpm build:server",
     "build:client": "vite build",
     "build:server": "tsdown",

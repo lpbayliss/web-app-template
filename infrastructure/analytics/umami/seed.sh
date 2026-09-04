@@ -1,5 +1,5 @@
 #!/bin/sh
-# Registers the dev website in Umami under a fixed id so ANALYTICS_WEBSITE_ID in .env.example works
+# Registers the dev website in Umami under a fixed id so ANALYTICS_WEBSITE_ID in .env.development works
 # without visiting the UI. Uses the default admin credentials; change them and this one-shot fails
 # harmlessly (the rest of the stack keeps running).
 set -eu

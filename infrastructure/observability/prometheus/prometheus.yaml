@@ -1,0 +1,34 @@
+# Overrides /otel-lgtm/prometheus.yaml in grafana/otel-lgtm: the image defaults plus scrapes of
+# the web process (PORT, job web-app-template) and the worker process (WORKER_PORT, job
+# web-app-template-worker).
+#
+# Both ways of running the app publish the same host ports — `pnpm dev` as host processes, the
+# compose `stack` profile as containers — so host.docker.internal is the only target either
+# needs, and it follows whichever is up. Do NOT also scrape the containers by service name
+# (app:3000 / worker:3010): that is the same process a second time, and the dashboards sum
+# across instances, so every rate would double while the stack runs. A target that is not
+# running simply shows as DOWN in Grafana.
+global:
+  scrape_native_histograms: true
+otlp:
+  keep_identifying_resource_attributes: true
+  promote_resource_attributes:
+    - service.instance.id
+    - service.name
+    - service.namespace
+    - service.version
+    - deployment.environment
+    - deployment.environment.name
+    - host.name
+storage:
+  tsdb:
+    out_of_order_time_window: 10m
+scrape_configs:
+  - job_name: web-app-template
+    scrape_interval: 15s
+    static_configs:
+      - targets: ["host.docker.internal:3000"]
+  - job_name: web-app-template-worker
+    scrape_interval: 15s
+    static_configs:
+      - targets: ["host.docker.internal:3010"]

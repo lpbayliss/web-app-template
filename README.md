@@ -14,7 +14,7 @@ A production-grade, single-package template for full-stack TypeScript apps. Batt
 | API | [tRPC 11](https://trpc.io/docs) | Typed over HTTP plus [WebSocket subscriptions](https://trpc.io/docs/server/subscriptions); REST and OpenAPI from the same routers via [trpc-to-openapi](https://github.com/mcampa/trpc-to-openapi), docs rendered by [Scalar](https://guides.scalar.com/scalar/scalar-api-references/integrations/hono) |
 | Database | [Postgres 17](https://www.postgresql.org/docs/17/) with [Drizzle ORM](https://orm.drizzle.team/docs/overview) | Typed schema and SQL, versioned [drizzle-kit migrations](https://orm.drizzle.team/docs/migrations) |
 | Auth | [Better Auth](https://www.better-auth.com/docs/introduction) | Email and password, cookie sessions, roles via the [admin plugin](https://www.better-auth.com/docs/plugins/admin) |
-| Jobs | [BullMQ](https://docs.bullmq.io/) on [Redis](https://redis.io/docs/latest/) | Typed job definitions, repeatable schedules, worker runs inline in dev |
+| Jobs | [BullMQ](https://docs.bullmq.io/) on [Redis](https://redis.io/docs/latest/) | Typed job definitions, repeatable schedules, dedicated worker process with its own `/metrics` |
 | Cache | Redis via [ioredis](https://github.com/redis/ioredis) | Response cache, opt in per procedure, in-memory store in tests |
 | Email | [react-email](https://react.email/docs) templates | [Resend](https://resend.com/docs) or SMTP ([Nodemailer](https://nodemailer.com/)); [Mailpit](https://mailpit.axllent.org/docs/) catches everything locally |
 | Analytics | [Umami](https://umami.is/docs) | Self-hosted and cookie-less, events sent from both the browser and the server |
@@ -41,12 +41,12 @@ A production-grade, single-package template for full-stack TypeScript apps. Batt
 | Packages | [pnpm 11](https://pnpm.io/motivation) | Version pinned by `packageManager`, minimum release age and a build allow-list |
 | Lint and format | [Biome](https://biomejs.dev/guides/getting-started/) | One tool for both; `pnpm lint:fix` writes the fixes |
 | Tests | [Vitest](https://vitest.dev/guide/) | Server tests on [PGlite](https://pglite.dev/docs/), client tests on [MSW](https://mswjs.io/docs) |
-| End to end | [Playwright](https://playwright.dev/docs/intro) | Runs against the production build |
+| End to end | [Playwright](https://playwright.dev/docs/intro) | Runs the production image as app and worker containers |
 | Git hooks | [lefthook](https://lefthook.dev/) with [commitlint](https://commitlint.js.org/) | Pre-push checks, Conventional Commits enforced |
 | Releases | [semantic-release](https://semantic-release.gitbook.io/semantic-release/) | Version, changelog, GitHub release and container image |
 | Dependencies | [Renovate](https://docs.renovatebot.com/) | Grouped updates with the same release-age delay as pnpm |
 | Dead code | [knip](https://knip.dev/) | Unused files, exports and dependencies fail CI |
-| Containers | multi-stage [Docker](https://docs.docker.com/build/building/multi-stage/) and a [devcontainer](https://containers.dev/) | Non-root runtime image, the same stack in VS Code |
+| Containers | multi-stage [Docker](https://docs.docker.com/build/building/multi-stage/) with [Compose](https://docs.docker.com/compose/) | Non-root runtime image; `pnpm stack:up` runs it as app and worker containers to verify a deployment locally |
 | CI | [GitHub Actions](https://docs.github.com/en/actions) | Quality, tests, e2e, release and image publish |
 
 ## Quick start
@@ -56,10 +56,14 @@ Prerequisites: Node 24 or newer, pnpm 11 (the repo pins its own version), Docker
 ```bash
 pnpm install
 # optional: create .env to override .env.development (e.g. AUTH_SECRET)
-docker compose up -d      # data services + dev tool UIs (see below)
+pnpm dev                  # brings up the containers below, then API :3000, worker :3010 and Vite :5173
+```
+
+`pnpm dev` starts the compose stack itself and then runs the API, worker and Vite as host processes, so it stays in the foreground. Set the database up from a second terminal — migrations and seeds run on the host, against the Postgres the stack publishes on :5432:
+
+```bash
 pnpm db:migrate
 pnpm db:seed              # admin@example.com / admin-password-123, user@example.com / user-password-123
-pnpm dev                  # API :3000 + Vite :5173
 ```
 
 ### What's running
@@ -67,8 +71,9 @@ pnpm dev                  # API :3000 + Vite :5173
 | URL | What | Docs |
 | --- | --- | --- |
 | http://localhost:5173 | The app. Vite dev server, proxies `/api` to :3000 | [Vite](https://vite.dev/config/server-options) |
+| http://localhost:3010/metrics | Worker process: Prometheus metrics, plus `/healthz` and `/readyz` | [prom-client](https://github.com/siimon/prom-client) |
 | http://localhost:3000/api/docs | API reference generated from the routers (OpenAPI) | [Scalar](https://guides.scalar.com/scalar/scalar-api-references/getting-started) |
-| http://localhost:3001 | Grafana: logs (Loki), traces (Tempo), metrics (Prometheus). Dashboards "App" and "Worker" are provisioned from `docker/otel-lgtm/dashboards/` | [grafana/otel-lgtm](https://github.com/grafana/docker-otel-lgtm) |
+| http://localhost:3001 | Grafana: logs (Loki), traces (Tempo), metrics (Prometheus). Dashboards "App" and "Worker" are provisioned from `infrastructure/observability/grafana/dashboards/` | [grafana/otel-lgtm](https://github.com/grafana/docker-otel-lgtm) |
 | http://localhost:3002 | Umami analytics, sign in with `admin` / `umami` | [Umami](https://umami.is/docs) |
 | http://localhost:3003 | Bull Board: queues, jobs and failures | [Bull Board](https://github.com/felixmosh/bull-board) |
 | http://localhost:5540 | RedisInsight: cache and queue keys | [RedisInsight](https://redis.io/docs/latest/develop/tools/insight/) |
@@ -76,17 +81,24 @@ pnpm dev                  # API :3000 + Vite :5173
 | http://localhost:8025 | Mailpit: every email the app sends, with a REST API for tests | [Mailpit](https://mailpit.axllent.org/docs/) |
 | http://localhost:6006 | Storybook, started separately with `pnpm storybook` | [Storybook](https://storybook.js.org/docs) |
 
-Short on memory? `docker compose up -d db redis mailpit` starts only what the app itself needs, though analytics and telemetry then log a warning per event unless you clear `ANALYTICS_URL`/`ANALYTICS_WEBSITE_ID` and set `OTEL_SDK_DISABLED=true`. Prefer containers? `docker compose --profile app up` runs the app too, and `.devcontainer/` opens the same stack in VS Code.
+Grafana, Umami, Bull Board, RedisInsight and Drizzle Gateway are the compose `tools` profile. `pnpm dev` starts them; `pnpm dev:core` does not.
+
+Short on memory? `pnpm dev:core` brings up only `db`, `redis` and `mailpit` — the three services the app itself needs — and runs the same host processes. With Grafana and Umami absent, telemetry and analytics log one failure per event until you set `OTEL_SDK_DISABLED=true` and clear `ANALYTICS_URL`/`ANALYTICS_WEBSITE_ID` in `.env`.
+
+Want the deployment shape instead? `pnpm stack:up` builds the Dockerfile's `prod` target and runs the app and worker as containers with no bind mounts, alongside the tool UIs, so telemetry lands in Grafana as it would in production. It publishes the same ports as `pnpm dev` (:3000 and :3010), so the two are mutually exclusive — stop one before starting the other. `pnpm stack:logs` follows both containers, `pnpm stack:down` removes them.
 
 ## Scripts
 
 | Command | Purpose |
 | --- | --- |
-| `pnpm dev` / `dev:server` / `dev:client` / `dev:worker` | Development servers (the worker runs inline in the web process unless `JOBS_INLINE=false`) |
+| `pnpm dev` | Compose `tools` profile, then the development servers on the host: API :3000, worker :3010 and Vite :5173 |
+| `pnpm dev:core` | The same host processes over only `db`, `redis` and `mailpit` — no tool UIs |
+| `pnpm dev:server` / `dev:client` / `dev:worker` | One development server at a time, containers assumed to be up already |
+| `pnpm stack:up`, `stack:logs`, `stack:down` | App and worker as containers from the Dockerfile's `prod` target, no bind mounts, on the same ports as `pnpm dev`; follow their logs; tear them down |
 | `pnpm check` | `lint` + `typecheck` + `i18n:check` + `test` + `knip` (what CI runs) |
 | `pnpm test`, `test:watch`, `test:coverage` | Vitest projects `server`, `shared`, `client`; coverage thresholds enforced |
-| `pnpm test:e2e` | Playwright against the production build (`docker compose --profile test up -d` first) |
-| `pnpm build`, `pnpm start`, `start:worker` | Vite client build + tsdown server bundle; run the web or worker process |
+| `pnpm test:e2e` | Playwright; the config runs `pnpm stack:e2e`, which builds the production image and starts the app, worker and throwaway data services in containers |
+| `pnpm build`, `pnpm start`, `start:worker` | Vite client build + tsdown server bundle; run the built web or worker process directly, no Docker |
 | `pnpm db:generate`, `db:migrate`, `db:reset`, `db:seed` | Drizzle migrations and dev data |
 | `pnpm db:studio` | Drizzle Studio from the CLI (the Drizzle Gateway container is the browser alternative) |
 | `pnpm i18n:check` | Verify every message id used in the client exists in every locale (and none are orphaned) |
@@ -118,7 +130,9 @@ src/
     bootstrap.ts, main.ts, worker.main.ts
   shared/schemas/    Zod schemas used by both sides (*.schema.ts)
   test/              harnesses: PGlite db, full app caller, RTL render helpers, MSW
-docker/              compose helper files: Prometheus scrape config, Umami init scripts
+infrastructure/      config the compose stack mounts
+  observability/     Grafana dashboards and provisioning, Prometheus scrape config (portable to production)
+  analytics/         Umami database bootstrap and website seed (dev only)
 e2e/                 Playwright specs (*.e2e.ts) + fixtures (Mailpit client)
 .claude/skills/      project skills for agents (dev server, tests, coverage, migrations, lint, email, release)
 ```
@@ -133,7 +147,7 @@ File names follow `kebab-name.type.ext`. See `CLAUDE.md` for the short list of c
 - **tRPC, REST and docs**: routers declare `meta.openapi`, so `/api/trpc` (typed client), `/api/v1/*` (REST via [trpc-to-openapi](https://github.com/mcampa/trpc-to-openapi)), `/api/openapi.json` and `/api/docs` ([Scalar](https://guides.scalar.com/scalar/scalar-api-references/integrations/hono)) all come from one definition.
 - **WebSockets**: `activity.onEvent` streams the user's task events over `/api/ws` using [tRPC subscriptions](https://trpc.io/docs/server/subscriptions) (`wsLink`, lazy connection, keep-alive, reconnect on deploy).
 - **Caching**: add `.use(cached({ ttlSeconds, scope: "user" | "global" }))` to a query; `Cache-Control: no-cache` from the client bypasses reads; the mutating service calls `Cache.invalidate(cachePrefix(...))`. `CACHE_ENABLED=false` turns it off globally. Backed by Redis through [ioredis](https://github.com/redis/ioredis).
-- **Jobs**: `defineJob({ name, schema, handle })`, enqueue with `jobs.enqueue(job, data)`, repeat with `jobs.schedule(id, job, cron, data)`. [BullMQ](https://docs.bullmq.io/) runs the worker inline in dev and as `dist/server/worker.js` in production. Bull Board runs as a dev container, not inside the app.
+- **Jobs**: `defineJob({ name, schema, handle })`, enqueue with `jobs.enqueue(job, data)`, repeat with `jobs.schedule(id, job, cron, data)`. [BullMQ](https://docs.bullmq.io/) runs in the dedicated worker process (`pnpm dev:worker`, `dist/server/worker.js` in production), which reports telemetry as `web-app-template-worker`; `JOBS_INLINE=true` folds it into the web process. Bull Board runs as a dev container, not inside the app.
 - **Email**: `EmailService.send(to, welcomeEmail(...))` renders [react-email](https://react.email/docs) templates to HTML and text. The provider comes from config: [Resend](https://resend.com/docs) (`RESEND_API_KEY`), SMTP (`SMTP_URL`, [Mailpit](https://mailpit.axllent.org/docs/) locally) or `noop` outside production. Mailpit's REST API (`GET :8025/api/v1/messages`) lets tests and agents read what was sent.
 - **Analytics**: on the server, `Analytics.track("task.created", { userId, taskId })` from services and auth hooks. In the browser, `analytics.track(name, data)` plus automatic page views and identify from `AnalyticsProvider`. The `system.config` query tells the browser which endpoint to use at runtime, so nothing is baked into the bundle. It stays off unless `ANALYTICS_URL` and `ANALYTICS_WEBSITE_ID` are both set. [Umami](https://umami.is/docs) is the default provider; swap it in `src/server/core/analytics.ts`. The dev container sets `DISABLE_BOT_CHECK` so the server's User-Agent is accepted; a production Umami needs the same setting or a browser-like User-Agent for server-side events.
 - **Health**: `/healthz` (liveness) and `/readyz` (database and Redis), with graceful shutdown on SIGTERM: stop HTTP and WebSockets, drain jobs, close Redis, close the database, bounded by `SHUTDOWN_TIMEOUT_MS`.
@@ -151,9 +165,10 @@ Every variable goes through `src/server/core/config.ts` and is validated at boot
 | `AUTH_SECRET` | required | Session signing secret, at least 32 characters |
 | `ADMIN_EMAILS` | empty | Comma-separated emails promoted to the admin role on sign-up |
 | `PORT` / `HOST` | `3000` / `0.0.0.0` | Where the HTTP server listens |
+| `WORKER_PORT` | `3010` | Where the worker process serves `/healthz`, `/readyz` and `/metrics` |
 | `LOG_LEVEL` / `LOG_FORMAT` | `info` / `json` in production, `pretty` elsewhere | pino level and output shape |
 | `CACHE_ENABLED` / `CACHE_DEFAULT_TTL_S` | `true` / `60` | Global cache switch and default TTL in seconds |
-| `JOBS_INLINE` | `true` outside production | Run queue workers inside the web process instead of a separate one |
+| `JOBS_INLINE` | `true` outside production (`false` in `.env.development`) | Run queue workers inside the web process instead of a separate one |
 | `EMAIL_FROM` | `App <no-reply@example.com>` | Sender address on every email |
 | `RESEND_API_KEY` or `SMTP_URL` | unset | Selects the email provider; with neither set it is `noop`, which production rejects |
 | `METRICS_TOKEN` | unset | Bearer token for `GET /metrics`, at least 16 characters. Unset means unauthenticated |
@@ -167,7 +182,7 @@ Every variable goes through `src/server/core/config.ts` and is validated at boot
 ## Testing
 
 - Unit and integration tests are colocated as `*.test.ts(x)`. Server tests run on [PGlite](https://pglite.dev/docs/) (Postgres in WASM) against the real migration files, and `createTestApp()` gives authenticated tRPC callers. Client tests use Testing Library with [MSW](https://mswjs.io/docs); an unhandled request fails the test.
-- End to end, [Playwright](https://playwright.dev/docs/intro) boots the built server on :3100 against the `test` compose profile and covers sign-up, the welcome email (read through Mailpit), tasks, the live feed, admin gating and the REST, OpenAPI and header contracts.
+- End to end, [Playwright](https://playwright.dev/docs/intro) runs the `e2e` compose profile: the production image as an app container on :3100 and a worker container on :3110, over throwaway Postgres, Redis and Mailpit. `JOBS_INLINE=false`, so the welcome-email test really crosses Redis into the worker. It covers sign-up, that email (read through Mailpit), tasks, the live feed, admin gating and the REST, OpenAPI and header contracts.
 - Coverage thresholds live in `vitest.config.ts`; CI posts the summary to the job page.
 
 ## Deploying
@@ -183,7 +198,7 @@ Every variable goes through `src/server/core/config.ts` and is validated at boot
 
 | Skill | What it does |
 | --- | --- |
-| `dev-server` | Start or check the local development stack (Postgres, Redis, Mailpit, Grafana, Umami, Bull Board, RedisInsight, Drizzle Gateway, API on :3000, Vite on :5173). |
+| `dev-server` | Start or check the local development stack (Postgres, Redis, Mailpit, Grafana, Umami, Bull Board, RedisInsight, Drizzle Gateway, API on :3000, Vite on :5173) or the containerised release stack. |
 | `run-tests` | Run unit, integration or end-to-end tests for this project. |
 | `review-coverage` | Generate and interpret the code coverage report, find under-tested files and decide what to test next. |
 | `migrate-database` | Change the database schema and generate, apply or inspect Drizzle migrations. |

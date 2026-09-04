@@ -4,7 +4,7 @@ Full-stack TypeScript template: Hono + tRPC (HTTP + WebSocket) + Drizzle/Postgre
 
 ## Commands
 
-- `pnpm dev` (needs `docker compose up -d`, which also starts the dev tool UIs listed in the README), `pnpm check` (lint + typecheck + i18n + test + knip), `pnpm test:e2e`
+- `pnpm dev` (starts the compose `tools` profile itself, then API/worker/Vite on the host), `pnpm dev:core` (same, but only db/redis/mailpit), `pnpm stack:up` (app + worker as prod containers on the same ports, so not alongside `pnpm dev`), `pnpm check` (lint + typecheck + i18n + test + knip), `pnpm test:e2e` (Playwright brings up its own containers)
 - Project skills in `.claude/skills/` cover dev server, tests, coverage, migrations, lint, email inspection and release checks. Use them.
 
 ## Conventions

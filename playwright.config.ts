@@ -3,12 +3,20 @@ import { parseEnv } from "node:util";
 import { defineConfig, devices } from "@playwright/test";
 
 /**
- * End-to-end tests run against the production build served by the real server, backed by the
- * `test` compose profile (db-test, redis-test, mailpit-test):
+ * End-to-end tests run against the release stack: the `prod` image from the Dockerfile, split
+ * into a real `e2e-app` and a separate `e2e-worker` (so `JOBS_INLINE=false` and queued work
+ * genuinely crosses Redis), backed by `db-test`, `redis-test` and `mailpit-test`.
  *
- *   docker compose --profile test up -d && pnpm build && pnpm test:e2e
+ *   pnpm test:e2e                        # global setup brings the stack up
+ *   pnpm stack:e2e:down                  # tear it down (kept running locally between runs)
  *
- * CI does the same with service containers. Values from .env.test fill in whatever the shell did not set.
+ * The stack is started from `e2e/global-setup.ts`, NOT from Playwright's `webServer`: that
+ * option rejects on any exit of its command, successful ones included, so it cannot be used
+ * with `docker compose up -d --wait`, which returns as soon as the stack is healthy. See the
+ * comment in that file. The containers own their environment — compose sets NODE_ENV,
+ * LOG_FORMAT, OTEL_SDK_DISABLED and the service hostnames — so nothing is injected here.
+ *
+ * Values from .env.test fill in whatever the shell did not set; only APP_URL is read here.
  */
 const testEnv = Object.fromEntries(
   Object.entries(parseEnv(readFileSync(".env.test", "utf8"))).filter(
@@ -39,19 +47,6 @@ export default defineConfig({
     video: "retain-on-failure",
   },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
-  webServer: {
-    command: "node --import tsx src/server/db/migrate.ts && node dist/server/main.js",
-    url: `${baseURL}/readyz`,
-    reuseExistingServer: !process.env.CI,
-    timeout: 60_000,
-    env: {
-      ...env,
-      NODE_ENV: "production",
-      LOG_FORMAT: "pretty",
-      OTEL_SDK_DISABLED: "true",
-      TRUST_PROXY: "false",
-    },
-    stdout: "pipe",
-    stderr: "pipe",
-  },
+  globalSetup: "./e2e/global-setup.ts",
+  globalTeardown: "./e2e/global-teardown.ts",
 });

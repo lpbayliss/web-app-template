@@ -1,7 +1,7 @@
 {
   "uid": "web-app-template-worker",
   "title": "web-app-template / Worker",
-  "description": "BullMQ job throughput, failures and duration, plus email delivery and runtime health of the process running the workers. Logs from Loki filtered to the worker modules.",
+  "description": "BullMQ job throughput, failures and duration, email delivery and runtime health of the worker process: Prometheus job web-app-template-worker (GET /metrics on WORKER_PORT) and Loki service_name=web-app-template-worker.",
   "tags": ["web-app-template"],
   "editable": true,
   "graphTooltip": 1,
@@ -35,10 +35,10 @@
           "uid": "prometheus"
         },
         "query": {
-          "query": "label_values(up{job=\"web-app-template\"}, instance)",
+          "query": "label_values(up{job=\"web-app-template-worker\"}, instance)",
           "refId": "instance"
         },
-        "definition": "label_values(up{job=\"web-app-template\"}, instance)",
+        "definition": "label_values(up{job=\"web-app-template-worker\"}, instance)",
         "refresh": 2,
         "includeAll": true,
         "multi": true,
@@ -69,8 +69,8 @@
         "includeAll": false,
         "multi": false,
         "current": {
-          "text": "web-app-template",
-          "value": "web-app-template"
+          "text": "web-app-template-worker",
+          "value": "web-app-template-worker"
         },
         "options": [],
         "sort": 1
@@ -94,7 +94,7 @@
       "datasource": null,
       "options": {
         "mode": "markdown",
-        "content": "**Where the numbers come from.** Job metrics are reported by whichever process runs the workers: the web process when `JOBS_INLINE=true` (the dev default), or the dedicated worker process in production. The standalone worker (`dist/server/worker.js`) does not expose a `/metrics` endpoint yet, so in production only its logs and traces appear here until it does. Queue depth lives in Bull Board (http://localhost:3003)."
+        "content": "**Scope.** Everything here comes from the worker process: Prometheus job `web-app-template-worker` (its `/metrics` on `WORKER_PORT`, 3010 by default) and Loki `service_name=web-app-template-worker`. `pnpm dev` runs the worker as its own process; with `JOBS_INLINE=true` the jobs run inside the web process instead and show up on the App dashboard under job `web-app-template`. Queue depth lives in Bull Board (http://localhost:3003)."
       }
     },
     {
@@ -114,7 +114,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum(rate(jobs_processed_total{instance=~\"$instance\"}[$__rate_interval]))",
+          "expr": "sum(rate(jobs_processed_total{job=\"web-app-template-worker\",instance=~\"$instance\"}[$__rate_interval]))",
           "legendFormat": "Jobs processed / s",
           "datasource": {
             "type": "prometheus",
@@ -168,7 +168,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum(rate(jobs_processed_total{instance=~\"$instance\",status=\"failed\"}[$__rate_interval])) / sum(rate(jobs_processed_total{instance=~\"$instance\"}[$__rate_interval]))",
+          "expr": "sum(rate(jobs_processed_total{job=\"web-app-template-worker\",instance=~\"$instance\",status=\"failed\"}[$__rate_interval])) / sum(rate(jobs_processed_total{job=\"web-app-template-worker\",instance=~\"$instance\"}[$__rate_interval]))",
           "legendFormat": "Failure rate",
           "datasource": {
             "type": "prometheus",
@@ -230,7 +230,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "histogram_quantile(0.95, sum by (le) (rate(job_duration_seconds_bucket{instance=~\"$instance\"}[$__rate_interval])))",
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(job_duration_seconds_bucket{job=\"web-app-template-worker\",instance=~\"$instance\"}[$__rate_interval])))",
           "legendFormat": "p95 job duration",
           "datasource": {
             "type": "prometheus",
@@ -284,7 +284,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum(rate(jobs_enqueued_total{instance=~\"$instance\"}[$__rate_interval]))",
+          "expr": "sum(rate(jobs_enqueued_total{job=\"web-app-template-worker\",instance=~\"$instance\"}[$__rate_interval]))",
           "legendFormat": "Jobs enqueued / s",
           "datasource": {
             "type": "prometheus",
@@ -338,7 +338,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum(increase(jobs_processed_total{instance=~\"$instance\",status=\"failed\"}[$__range]))",
+          "expr": "sum(increase(jobs_processed_total{job=\"web-app-template-worker\",instance=~\"$instance\",status=\"failed\"}[$__range]))",
           "legendFormat": "Failed in range",
           "datasource": {
             "type": "prometheus",
@@ -396,7 +396,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum(up{job=\"web-app-template\",instance=~\"$instance\"})",
+          "expr": "sum(up{job=\"web-app-template-worker\",instance=~\"$instance\"})",
           "legendFormat": "Scrape targets up",
           "datasource": {
             "type": "prometheus",
@@ -467,7 +467,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum by (job, status) (rate(jobs_processed_total{instance=~\"$instance\"}[$__rate_interval]))",
+          "expr": "sum by (job, status) (rate(jobs_processed_total{job=\"web-app-template-worker\",instance=~\"$instance\"}[$__rate_interval]))",
           "legendFormat": "{{job}} {{status}}",
           "datasource": {
             "type": "prometheus",
@@ -520,7 +520,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum(rate(jobs_enqueued_total{instance=~\"$instance\"}[$__rate_interval]))",
+          "expr": "sum(rate(jobs_enqueued_total{job=\"web-app-template-worker\",instance=~\"$instance\"}[$__rate_interval]))",
           "legendFormat": "enqueued",
           "datasource": {
             "type": "prometheus",
@@ -529,7 +529,7 @@
         },
         {
           "refId": "B",
-          "expr": "sum(rate(jobs_processed_total{instance=~\"$instance\"}[$__rate_interval]))",
+          "expr": "sum(rate(jobs_processed_total{job=\"web-app-template-worker\",instance=~\"$instance\"}[$__rate_interval]))",
           "legendFormat": "processed",
           "datasource": {
             "type": "prometheus",
@@ -582,7 +582,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "histogram_quantile(0.50, sum by (le, job) (rate(job_duration_seconds_bucket{instance=~\"$instance\"}[$__rate_interval])))",
+          "expr": "histogram_quantile(0.50, sum by (le, job) (rate(job_duration_seconds_bucket{job=\"web-app-template-worker\",instance=~\"$instance\"}[$__rate_interval])))",
           "legendFormat": "p50 {{job}}",
           "datasource": {
             "type": "prometheus",
@@ -591,7 +591,7 @@
         },
         {
           "refId": "B",
-          "expr": "histogram_quantile(0.95, sum by (le, job) (rate(job_duration_seconds_bucket{instance=~\"$instance\"}[$__rate_interval])))",
+          "expr": "histogram_quantile(0.95, sum by (le, job) (rate(job_duration_seconds_bucket{job=\"web-app-template-worker\",instance=~\"$instance\"}[$__rate_interval])))",
           "legendFormat": "p95 {{job}}",
           "datasource": {
             "type": "prometheus",
@@ -644,7 +644,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum by (job) (rate(jobs_processed_total{instance=~\"$instance\",status=\"failed\"}[$__rate_interval]))",
+          "expr": "sum by (job) (rate(jobs_processed_total{job=\"web-app-template-worker\",instance=~\"$instance\",status=\"failed\"}[$__rate_interval]))",
           "legendFormat": "{{job}}",
           "datasource": {
             "type": "prometheus",
@@ -711,7 +711,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum by (template, status) (rate(emails_sent_total{instance=~\"$instance\"}[$__rate_interval]))",
+          "expr": "sum by (template, status) (rate(emails_sent_total{job=\"web-app-template-worker\",instance=~\"$instance\"}[$__rate_interval]))",
           "legendFormat": "{{template}} {{status}}",
           "datasource": {
             "type": "prometheus",
@@ -764,7 +764,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum by (template) (rate(emails_sent_total{instance=~\"$instance\",status!=\"sent\"}[$__rate_interval]))",
+          "expr": "sum by (template) (rate(emails_sent_total{job=\"web-app-template-worker\",instance=~\"$instance\",status!=\"sent\"}[$__rate_interval]))",
           "legendFormat": "{{template}}",
           "datasource": {
             "type": "prometheus",
@@ -831,7 +831,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "rate(process_cpu_seconds_total{instance=~\"$instance\"}[$__rate_interval])",
+          "expr": "rate(process_cpu_seconds_total{job=\"web-app-template-worker\",instance=~\"$instance\"}[$__rate_interval])",
           "legendFormat": "{{instance}}",
           "datasource": {
             "type": "prometheus",
@@ -884,7 +884,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "process_resident_memory_bytes{instance=~\"$instance\"}",
+          "expr": "process_resident_memory_bytes{job=\"web-app-template-worker\",instance=~\"$instance\"}",
           "legendFormat": "rss {{instance}}",
           "datasource": {
             "type": "prometheus",
@@ -893,7 +893,7 @@
         },
         {
           "refId": "B",
-          "expr": "nodejs_heap_size_used_bytes{instance=~\"$instance\"}",
+          "expr": "nodejs_heap_size_used_bytes{job=\"web-app-template-worker\",instance=~\"$instance\"}",
           "legendFormat": "heap used {{instance}}",
           "datasource": {
             "type": "prometheus",
@@ -902,7 +902,7 @@
         },
         {
           "refId": "C",
-          "expr": "nodejs_heap_size_total_bytes{instance=~\"$instance\"}",
+          "expr": "nodejs_heap_size_total_bytes{job=\"web-app-template-worker\",instance=~\"$instance\"}",
           "legendFormat": "heap total {{instance}}",
           "datasource": {
             "type": "prometheus",
@@ -955,7 +955,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "nodejs_eventloop_lag_mean_seconds{instance=~\"$instance\"}",
+          "expr": "nodejs_eventloop_lag_mean_seconds{job=\"web-app-template-worker\",instance=~\"$instance\"}",
           "legendFormat": "mean {{instance}}",
           "datasource": {
             "type": "prometheus",
@@ -964,7 +964,7 @@
         },
         {
           "refId": "B",
-          "expr": "nodejs_eventloop_lag_max_seconds{instance=~\"$instance\"}",
+          "expr": "nodejs_eventloop_lag_max_seconds{job=\"web-app-template-worker\",instance=~\"$instance\"}",
           "legendFormat": "max {{instance}}",
           "datasource": {
             "type": "prometheus",
@@ -1017,7 +1017,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum by (kind, instance) (rate(nodejs_gc_duration_seconds_sum{instance=~\"$instance\"}[$__rate_interval]))",
+          "expr": "sum by (kind, instance) (rate(nodejs_gc_duration_seconds_sum{job=\"web-app-template-worker\",instance=~\"$instance\"}[$__rate_interval]))",
           "legendFormat": "{{kind}} {{instance}}",
           "datasource": {
             "type": "prometheus",

@@ -3,7 +3,6 @@
 # Stages:
 #   deps       install all dependencies from the lockfile (cached by pnpm store)
 #   build      compile client + server
-#   dev        everything installed, source bind-mounted (compose `app` service / devcontainer)
 #   prod-deps  production dependencies only
 #   prod       prod-deps + dist, non-root, tini as PID 1
 #
@@ -33,12 +32,6 @@ FROM deps AS build
 COPY . .
 RUN pnpm build
 
-# ---------------------------------------------------------------- dev
-FROM deps AS dev
-ENV NODE_ENV=development
-EXPOSE 3000 5173 6006
-CMD ["pnpm", "dev"]
-
 # ---------------------------------------------------------------- prod-deps
 FROM base AS prod-deps
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
@@ -63,8 +56,8 @@ COPY --from=prod-deps --chown=node:node /app/node_modules ./node_modules
 COPY --from=build --chown=node:node /app/dist ./dist
 COPY --chown=node:node package.json ./
 USER node
-EXPOSE 3000
+EXPOSE 3000 3010
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
-  CMD wget -qO- http://127.0.0.1:${PORT}/healthz || exit 1
+  CMD wget -qO- http://127.0.0.1:${PORT}/healthz || wget -qO- http://127.0.0.1:${WORKER_PORT}/healthz || exit 1
 ENTRYPOINT ["/sbin/tini", "--"]
 CMD ["node", "--import", "./dist/server/instrumentation.js", "dist/server/main.js"]

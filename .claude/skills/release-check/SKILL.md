@@ -18,9 +18,9 @@ Releases are automatic: merging to `main` runs semantic-release, which reads Con
 
 1. `pnpm check` passes (lint, typecheck, tests, knip).
 2. `pnpm build` then `pnpm start` with `NODE_ENV=production` in `.env` serves the SPA on :3000 (`curl -s localhost:3000/readyz`).
-3. `docker build --target prod -t app:local .` succeeds; `docker run --rm --env-file .env -e DATABASE_URL=... -e REDIS_URL=... -p 3000:3000 app:local` reaches `ready`. Use `host.docker.internal` for local services.
+3. `pnpm stack:up` builds the Dockerfile `prod` target and runs `app` + `worker` as containers with migrations applied by `stack-init`; `curl -s localhost:3000/readyz` reaches `ready`, then `pnpm stack:down`. Stop `pnpm dev` first — both bind :3000 and :3010.
 4. Migrations for this change are committed and apply cleanly (`pnpm db:migrate` on a fresh `pnpm db:reset` database, with user consent).
-5. New env vars are in `.env.development`, `.env.test`, `compose.yaml` (`app` service) and documented in the README.
+5. New env vars are in `.env.development`, `.env.test`, the compose `stack` services (`app`, `worker`) and `e2e` services (`e2e-app`, `e2e-worker`), and documented in the README.
 6. Dry run the version: `pnpm exec semantic-release --dry-run --no-ci` (needs `GITHUB_TOKEN`; without it, read `git log --oneline <last tag>..HEAD` and apply the table above).
 
 ## After merge

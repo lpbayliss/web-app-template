@@ -5,7 +5,7 @@ playwright-report
 test-results
 .git
 .github
-.devcontainer
+infrastructure
 .vscode
 .claude
 docs

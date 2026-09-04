@@ -11,18 +11,26 @@
 ```bash
 pnpm install
 # optional: create .env to override .env.development (e.g. AUTH_SECRET)
-docker compose up -d
-pnpm db:migrate
-pnpm dev
+pnpm dev          # starts the containers, then API :3000, worker :3010 and Vite :5173
 ```
 
-`pnpm db:seed` adds two accounts: `admin@example.com` / `admin-password-123` and `user@example.com` / `user-password-123`.
+`pnpm dev` stays in the foreground, so run the database commands from a second terminal. They
+execute on the host against Postgres published on :5432.
+
+```bash
+pnpm db:migrate
+pnpm db:seed      # admin@example.com / admin-password-123, user@example.com / user-password-123
+```
+
+`pnpm dev:core` is the lean alternative: Postgres, Redis and Mailpit only, without the tool UIs.
 
 ## Before you push
 
 - Run `pnpm check` (lint, typecheck, i18n check, tests, knip). This is what CI runs.
 - lefthook runs typecheck, tests and knip on pre-push, and commitlint on the commit message.
-- End-to-end tests: `docker compose --profile test up -d && pnpm build && pnpm test:e2e`.
+- End-to-end tests: `pnpm test:e2e`. Playwright's global setup builds the production image and
+  starts the `e2e` compose profile itself; the stack is left running between local runs, so tear
+  it down with `pnpm stack:e2e:down` when you are finished.
 
 ## Conventions
 

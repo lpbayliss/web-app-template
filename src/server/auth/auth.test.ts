@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+import { Analytics } from "#core";
 import { createTestDb, type TestDb } from "#test/server/db.harness";
 import { type Auth, createAuth, isAdmin } from "./auth";
 
@@ -25,6 +26,7 @@ describe("createAuth", () => {
   afterAll(() => testDb.close());
 
   it("signs up, assigns the default role and fires onUserCreated", async () => {
+    const track = vi.spyOn(Analytics, "track");
     const auth = createAuth({ db: testDb.db, onUserCreated });
     const { cookie, user } = await signUpAndGetCookie(auth, {
       email: "person@example.com",
@@ -35,6 +37,7 @@ describe("createAuth", () => {
     expect(onUserCreated).toHaveBeenCalledWith(
       expect.objectContaining({ email: "person@example.com" }),
     );
+    expect(track).toHaveBeenCalledWith("user.signed_up", { userId: user.id });
 
     const session = await auth.api.getSession({ headers: new Headers({ cookie }) });
     expect(session?.user.role).toBe("user");

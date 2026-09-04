@@ -1,7 +1,8 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { Cache, MemoryCacheStore } from "#core";
+import { type AppConfig, Cache, MemoryCacheStore } from "#core";
 import { cachePrefix } from "#server/trpc/cache.middleware";
 import { createTestApp, type TestApp } from "#test/server/trpc.harness";
+import { publicConfig } from "./system.router";
 
 describe("system router", () => {
   let app: TestApp;
@@ -51,5 +52,25 @@ describe("system router", () => {
     });
     const anon = await app.anonymous();
     await expect(anon.system.me()).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+  });
+
+  it("tells the browser whether analytics is configured", async () => {
+    const anon = await app.anonymous();
+    expect(await anon.system.config()).toEqual({ analytics: null });
+    expect(
+      publicConfig({
+        analytics: {
+          enabled: true,
+          url: "http://localhost:3002",
+          serverUrl: "http://umami:3000",
+          websiteId: "6ef283e9-def7-423a-9a9a-5682722e1daf",
+        },
+      } as AppConfig),
+    ).toEqual({
+      analytics: {
+        url: "http://localhost:3002",
+        websiteId: "6ef283e9-def7-423a-9a9a-5682722e1daf",
+      },
+    });
   });
 });

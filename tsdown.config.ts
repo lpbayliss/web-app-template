@@ -9,6 +9,7 @@ export default defineConfig({
     main: "src/server/main.ts",
     worker: "src/server/worker.main.ts",
     migrate: "src/server/db/migrate.ts",
+    instrumentation: "src/server/instrumentation.ts",
   },
   outDir: "dist/server",
   format: "esm",

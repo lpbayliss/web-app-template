@@ -54,9 +54,24 @@ const envSchema = z.object({
   /** OpenTelemetry SDK conventions: tracing is active when an endpoint is set and the SDK is not disabled. */
   OTEL_EXPORTER_OTLP_ENDPOINT: z.url().optional(),
   OTEL_SDK_DISABLED: bool.default(false),
+
+  /** Product analytics (Umami). Enabled when ANALYTICS_URL and ANALYTICS_WEBSITE_ID are both set. */
+  ANALYTICS_URL: z.url({ protocol: /^https?$/ }).optional(),
+  /** Where the server posts events when the public URL is not reachable from it (docker networks). */
+  ANALYTICS_SERVER_URL: z.url({ protocol: /^https?$/ }).optional(),
+  ANALYTICS_WEBSITE_ID: z.uuid().optional(),
 });
 
 type Env = z.infer<typeof envSchema>;
+
+export type AnalyticsConfig =
+  | { readonly enabled: false }
+  | {
+      readonly enabled: true;
+      readonly url: string;
+      readonly serverUrl: string;
+      readonly websiteId: string;
+    };
 
 export interface AppConfig {
   readonly nodeEnv: Env["NODE_ENV"];
@@ -87,6 +102,7 @@ export interface AppConfig {
   };
   readonly trustProxy: boolean;
   readonly telemetry: { readonly enabled: boolean; readonly otlpEndpoint: string | undefined };
+  readonly analytics: AnalyticsConfig;
 }
 
 export class ConfigError extends Error {
@@ -114,6 +130,19 @@ function resolveEmailProvider(e: Env): AppConfig["email"]["provider"] {
   return "noop";
 }
 
+const stripSlash = (url: string) => url.replace(/\/$/, "");
+
+function resolveAnalytics(e: Env): AnalyticsConfig {
+  if (!e.ANALYTICS_URL || !e.ANALYTICS_WEBSITE_ID) return { enabled: false };
+  const url = stripSlash(e.ANALYTICS_URL);
+  return Object.freeze({
+    enabled: true,
+    url,
+    serverUrl: e.ANALYTICS_SERVER_URL ? stripSlash(e.ANALYTICS_SERVER_URL) : url,
+    websiteId: e.ANALYTICS_WEBSITE_ID,
+  });
+}
+
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   const result = envSchema.safeParse(stripEmpty(env));
   if (!result.success) {
@@ -131,6 +160,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     problems.push("✖ SMTP_URL is required when EMAIL_PROVIDER=smtp");
   if (isProduction && emailProvider === "noop")
     problems.push("✖ Configure RESEND_API_KEY or SMTP_URL in production");
+  if ((e.ANALYTICS_URL === undefined) !== (e.ANALYTICS_WEBSITE_ID === undefined))
+    problems.push("✖ ANALYTICS_URL and ANALYTICS_WEBSITE_ID must be set together");
   if (problems.length) throw new ConfigError(problems.join("\n"));
 
   return Object.freeze({
@@ -168,6 +199,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
       enabled: !e.OTEL_SDK_DISABLED && e.OTEL_EXPORTER_OTLP_ENDPOINT !== undefined,
       otlpEndpoint: e.OTEL_EXPORTER_OTLP_ENDPOINT,
     }),
+    analytics: resolveAnalytics(e),
   });
 }
 

@@ -51,10 +51,10 @@ export function createWorker(deps: WorkerDeps) {
       try {
         await definition.handle(parsed.data, ctx);
         processed.inc({ job: job.name, status: "completed" });
-        log.info("job completed", { attempt: job.attemptsMade + 1 });
+        log.info({ attempt: job.attemptsMade + 1 }, "job completed");
       } catch (error) {
         processed.inc({ job: job.name, status: "failed" });
-        log.error("job failed", { attempt: job.attemptsMade + 1, error });
+        log.error({ attempt: job.attemptsMade + 1, error }, "job failed");
         throw error;
       } finally {
         end();
@@ -67,9 +67,9 @@ export function createWorker(deps: WorkerDeps) {
     prefix: `${Config.appName}:bull`,
     concurrency: deps.concurrency ?? 5,
   });
-  worker.on("error", (error) => log.error("worker error", { error }));
+  worker.on("error", (error) => log.error({ error }, "worker error"));
   worker.on("failed", (job, error) =>
-    log.warn("job attempt failed", { jobName: job?.name, jobId: job?.id, error: error.message }),
+    log.warn({ jobName: job?.name, jobId: job?.id, error: error.message }, "job attempt failed"),
   );
 
   return {

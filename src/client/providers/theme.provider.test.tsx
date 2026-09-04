@@ -1,6 +1,6 @@
 import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ThemeProvider, useTheme } from "./theme.provider";
 
 function Probe() {
@@ -24,6 +24,10 @@ describe("ThemeProvider", () => {
   beforeEach(() => {
     localStorage.clear();
     document.documentElement.classList.remove("dark");
+  });
+
+  afterEach(() => {
+    delete window.umami;
   });
 
   it("defaults to the system theme", () => {
@@ -64,5 +68,18 @@ describe("ThemeProvider", () => {
 
   it("throws when used outside the provider", () => {
     expect(() => render(<Probe />)).toThrow(/inside <ThemeProvider>/);
+  });
+
+  it("reports theme changes to analytics", async () => {
+    const umami = { track: vi.fn(), identify: vi.fn() };
+    window.umami = umami;
+    const user = userEvent.setup();
+    render(
+      <ThemeProvider>
+        <Probe />
+      </ThemeProvider>,
+    );
+    await user.click(screen.getByRole("button", { name: "dark" }));
+    expect(umami.track).toHaveBeenCalledWith("theme.changed", { theme: "dark" });
   });
 });

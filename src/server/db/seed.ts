@@ -32,7 +32,7 @@ try {
       .where(eq(schema.users.email, seed.email))
       .limit(1);
     if (existing) {
-      Logger.info("seed user exists", { email: seed.email });
+      Logger.info({ email: seed.email }, "seed user exists");
       continue;
     }
     const { user } = await auth.api.signUpEmail({ body: seed });
@@ -40,11 +40,14 @@ try {
       { ownerId: user.id, title: `Welcome, ${seed.name}` },
       { ownerId: user.id, title: "Explore the admin area", completed: seed.name === "Admin" },
     ]);
-    Logger.info("seed user created", {
-      email: seed.email,
-      password: seed.password,
-      role: user.role,
-    });
+    Logger.info(
+      {
+        email: seed.email,
+        password: seed.password,
+        role: user.role,
+      },
+      "seed user created",
+    );
   }
 } finally {
   await handle.close();

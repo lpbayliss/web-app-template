@@ -1,7 +1,7 @@
 import { drizzleAdapter } from "@better-auth/drizzle-adapter";
 import { betterAuth } from "better-auth";
 import { admin } from "better-auth/plugins";
-import { Config, Logger } from "#core";
+import { Analytics, Config, Logger } from "#core";
 import { type Database, schema } from "#server/db/client";
 
 export const ADMIN_ROLE = "admin";
@@ -66,7 +66,8 @@ export function createAuth(deps: AuthDeps) {
             }
           },
           after: async (user) => {
-            log.info("user created", { userId: user.id });
+            log.info({ userId: user.id }, "user created");
+            Analytics.track("user.signed_up", { userId: user.id });
             await deps.onUserCreated?.({ id: user.id, email: user.email, name: user.name });
           },
         },

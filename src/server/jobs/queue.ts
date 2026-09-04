@@ -14,7 +14,7 @@ export function createJobQueue(connection: RedisClient) {
     prefix: `${Config.appName}:bull`,
     defaultJobOptions: DEFAULT_JOB_OPTIONS,
   });
-  queue.on("error", (error) => log.error("queue error", { error }));
+  queue.on("error", (error) => log.error({ error }, "queue error"));
 
   return {
     queue,
@@ -23,7 +23,7 @@ export function createJobQueue(connection: RedisClient) {
       const payload = job.schema.parse(data);
       const added = await queue.add(job.name, payload, { ...job.options, ...options });
       enqueued.inc({ job: job.name });
-      log.debug("job enqueued", { job: job.name, jobId: added.id });
+      log.debug({ job: job.name, jobId: added.id }, "job enqueued");
       return added;
     },
     /** Cron-style repeat. Idempotent: calling again with the same id updates the schedule. */
@@ -34,7 +34,7 @@ export function createJobQueue(connection: RedisClient) {
         { pattern },
         { name: job.name, data: payload, ...(job.options ? { opts: job.options } : {}) },
       );
-      log.info("job scheduled", { job: job.name, schedulerId: id, pattern });
+      log.info({ job: job.name, schedulerId: id, pattern }, "job scheduled");
     },
     close: () => queue.close(),
   };

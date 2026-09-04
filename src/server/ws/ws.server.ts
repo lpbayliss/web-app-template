@@ -34,16 +34,16 @@ export function createWsServer(server: Server, deps: AppDeps) {
       ),
     keepAlive: { enabled: true, pingMs: 30_000, pongWaitMs: 5_000 },
     onError: ({ error, path }) => {
-      if (error.code === "INTERNAL_SERVER_ERROR") log.error("ws procedure error", { path, error });
+      if (error.code === "INTERNAL_SERVER_ERROR") log.error({ path, error }, "ws procedure error");
     },
   });
 
   wss.on("connection", (ws) => {
     Metrics.wsConnections.inc();
-    log.debug("ws connected", { clients: wss.clients.size });
+    log.debug({ clients: wss.clients.size }, "ws connected");
     ws.once("close", () => {
       Metrics.wsConnections.dec();
-      log.debug("ws disconnected", { clients: wss.clients.size });
+      log.debug({ clients: wss.clients.size }, "ws disconnected");
     });
   });
 

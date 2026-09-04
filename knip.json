@@ -4,7 +4,7 @@
   "project": ["src/**/*.{ts,tsx}", "e2e/**/*.ts", ".storybook/**/*.{ts,tsx}"],
   "ignoreDependencies": [
     "@opentelemetry/exporter-trace-otlp-http",
-    "@opentelemetry/instrumentation-winston",
+    "@opentelemetry/instrumentation-pino",
     "@opentelemetry/sdk-node"
   ]
 }

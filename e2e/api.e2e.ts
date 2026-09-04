@@ -13,6 +13,7 @@ test.describe("api", () => {
     const spec = await (await request.get("/api/openapi.json")).json();
     expect(spec.paths["/tasks"]).toBeDefined();
     expect((await request.get("/api/v1/tasks")).status()).toBe(401);
+    expect(await (await request.get("/api/v1/system/config")).json()).toEqual({ analytics: null });
     expect((await request.get("/api/docs")).ok()).toBe(true);
   });
 

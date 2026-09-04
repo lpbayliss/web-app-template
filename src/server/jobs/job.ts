@@ -1,6 +1,6 @@
 import type { Job as BullJob, JobsOptions } from "bullmq";
-import type winston from "winston";
 import type { z } from "zod";
+import type { AppLogger } from "#core";
 import type { Database } from "#server/db/client";
 import type { EmailService } from "#server/email/email.service";
 
@@ -8,7 +8,7 @@ import type { EmailService } from "#server/email/email.service";
 export interface JobContext {
   db: Database;
   email: EmailService;
-  log: winston.Logger;
+  log: AppLogger;
   job: Pick<BullJob, "id" | "name" | "attemptsMade" | "updateProgress">;
 }
 

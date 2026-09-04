@@ -1,4 +1,4 @@
-import { Cache, NotFoundError } from "#core";
+import { Analytics, Cache, NotFoundError } from "#core";
 import type { TaskRow } from "#server/db/tables/task.table";
 import { cachePrefix } from "#server/trpc/cache.middleware";
 import type { CreateTaskInput, Task, UpdateTaskInput } from "#shared/schemas/task.schema";
@@ -43,6 +43,7 @@ export function createTaskService({ repo, events }: TaskServiceDeps) {
       const task = toTask(await repo.insert(userId, input));
       await invalidate(userId);
       events.publish({ type: "task.created", userId, taskId: task.id, title: task.title });
+      Analytics.track("task.created", { userId, taskId: task.id });
       return task;
     },
 
@@ -57,6 +58,7 @@ export function createTaskService({ repo, events }: TaskServiceDeps) {
       const task = toTask(row);
       await invalidate(userId);
       events.publish({ type: "task.updated", userId, taskId: task.id, title: task.title });
+      if (patch.completed === true) Analytics.track("task.completed", { userId, taskId: task.id });
       return task;
     },
 

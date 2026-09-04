@@ -47,11 +47,11 @@ export function createEmailService(provider: EmailProvider) {
           from: Config.email.from,
         });
         sent.inc({ template: template.name, status: "sent" });
-        log.info("email sent", { template: template.name, to, messageId: result.id });
+        log.info({ template: template.name, to, messageId: result.id }, "email sent");
         return result;
       } catch (error) {
         sent.inc({ template: template.name, status: "failed" });
-        log.error("email failed", { template: template.name, to, error });
+        log.error({ template: template.name, to, error }, "email failed");
         throw error;
       }
     },

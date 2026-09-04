@@ -1953,3 +1953,138 @@ Expected: PASS, including the updated admin test and the new `/api/v1/system/con
 - [ ] **Step 4: Report**
 
 Summarise: what was verified with output, what was skipped (e.g. Docker not available) and why.
+
+---
+
+### Task 14: Live pipeline fixes (Umami seed, ESM instrumentation hook)
+
+Added after the live check found two defects. Two independent parts, each its own commit.
+
+**Files:**
+- Modify: `docker/umami/seed.sh`
+- Create: `src/server/instrumentation.ts`
+- Modify: `package.json` (new dependency `import-in-the-middle`, four scripts), `pnpm-lock.yaml`
+- Modify: `tsdown.config.ts` (new entry), `Dockerfile:70`, `.env.example:45`, `README.md:140`
+- Modify (only if knip or tsc demand it): `knip.json`, `src/server/instrumentation.d.ts`
+
+**Interfaces:**
+- Consumes: the dev stack from Task 10 (running); `Config.analytics`; the OTel start scripts.
+- Produces: `dist/server/instrumentation.js`, loaded with `node --import ./dist/server/instrumentation.js` in production and `--import tsx --import ./src/server/instrumentation.ts` in dev.
+
+#### Part A: seed script existence check
+
+**Defect:** Umami answers `GET /api/websites/<id>` for an unknown id with HTTP 200 and body `null`, so the script's status-code check always reports "already exists" and never creates the website. Every `POST /api/send` then fails with `400 {"error":{"message":"Website not found."}}`.
+
+- [ ] **Step 1: Fix `docker/umami/seed.sh`**
+
+Replace the `status=...` block with a body check:
+
+```sh
+existing=$(curl -fsS "$UMAMI_URL/api/websites/$WEBSITE_ID" -H "authorization: Bearer $token")
+case "$existing" in
+  *"\"id\":\"$WEBSITE_ID\""*)
+    echo "umami: website $WEBSITE_ID already exists"
+    exit 0
+    ;;
+esac
+```
+
+(Umami returns the website JSON, including `"id":"<uuid>"`, when it exists and the literal `null` when it does not.)
+
+- [ ] **Step 2: Verify against the running stack**
+
+Run: `docker compose run --rm umami-seed` → prints `umami: website 6ef283e9-def7-423a-9a9a-5682722e1daf created`. Run it again → prints `already exists`. Then:
+
+```sh
+token=$(curl -s -X POST localhost:3002/api/auth/login -H 'content-type: application/json' -d '{"username":"admin","password":"umami"}' | sed -n 's/.*"token":"\([^"]*\)".*/\1/p')
+curl -s localhost:3002/api/websites -H "authorization: Bearer $token"
+```
+Expected: `count` is 1 and the entry has the fixed id.
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add docker/umami/seed.sh
+git commit -m "fix(dev): create the Umami website when the id lookup returns null"
+```
+
+#### Part B: instrument ESM imports (pino logs to Loki)
+
+**Defect:** `@opentelemetry/auto-instrumentations-node/register` only installs a CommonJS `require` hook. The app is ESM, so `pino`, `ioredis` and every other dependency are loaded by Node's ESM loader and never patched; only built-ins (`http`, `dns`, `net`) produce telemetry and no pino record reaches the OTLP logs exporter. The fix registers import-in-the-middle's loader hook before the SDK starts. Verified by spike: with the hook registered (sync `module.registerHooks` path), `@opentelemetry/instrumentation-pino` patches `pino`, log lines appear in Loki under `{service_name="..."}`, and there are no deprecation or wrap warnings when only `node_modules` URLs are wrapped.
+
+- [ ] **Step 1: Add the dependency**
+
+Run: `pnpm add import-in-the-middle@^3.4.0` (already in the lockfile as a transitive dependency of `@opentelemetry/instrumentation`, so pnpm's release-age policy is not a factor). It must be a direct dependency: pnpm's strict layout makes the `register-hooks.mjs` subpath unresolvable otherwise.
+
+- [ ] **Step 2: Create `src/server/instrumentation.ts`**
+
+```ts
+/**
+ * OpenTelemetry preload. Load it before the app:
+ *   dev:  node --import tsx --import ./src/server/instrumentation.ts src/server/main.ts
+ *   prod: node --import ./dist/server/instrumentation.js dist/server/main.js
+ *
+ * `@opentelemetry/auto-instrumentations-node/register` on its own only hooks CommonJS
+ * `require()`. This app is ESM, so its dependencies (pino, ioredis, ...) go through Node's ESM
+ * loader and would never be patched: only built-ins would be traced and no pino record would
+ * reach the OTLP logs exporter. Routing dependency imports through import-in-the-middle first
+ * fixes that. The SDK itself still honours OTEL_SDK_DISABLED and the OTEL_*_EXPORTER variables.
+ */
+import { register as registerAsyncHook } from "node:module";
+import { register, supportsSyncHooks } from "import-in-the-middle/register-hooks.mjs";
+
+/** Wrap dependencies only; the app's own modules are left untouched. */
+const isDependency = (url: string) => url.includes("/node_modules/");
+
+if (supportsSyncHooks()) {
+  register({ shouldInclude: isDependency });
+} else {
+  // Older Node 24: the loader runs on a separate thread, so only serialisable options work.
+  registerAsyncHook("import-in-the-middle/hook.mjs", import.meta.url, {
+    data: { exclude: [/\/(src|dist)\//] },
+  });
+}
+
+// Dynamic so it runs after the hook is registered (static imports are hoisted).
+await import("@opentelemetry/auto-instrumentations-node/register");
+```
+
+If `pnpm typecheck` reports TS7016 ("Could not find a declaration file") for the `.mjs` subpath (the package ships `register-hooks.d.ts`, which TypeScript's `bundler` resolution does not pair with a `.mjs` import), create `src/server/instrumentation.d.ts`:
+
+```ts
+declare module "import-in-the-middle/register-hooks.mjs" {
+  export * from "import-in-the-middle/register-hooks";
+}
+```
+
+- [ ] **Step 3: Wire it in**
+
+- `tsdown.config.ts`: add `instrumentation: "src/server/instrumentation.ts"` to `entry`.
+- `package.json` scripts: replace `--import @opentelemetry/auto-instrumentations-node/register` with `--import ./src/server/instrumentation.ts` in `dev:server` and `dev:worker` (keep `--import tsx` first), and with `--import ./dist/server/instrumentation.js` in `start` and `start:worker`.
+- `Dockerfile` line 70: `CMD ["node", "--import", "./dist/server/instrumentation.js", "dist/server/main.js"]`; update the header comment's `Worker:` line to `node --import ./dist/server/instrumentation.js dist/server/worker.js`.
+- `.env.example` line 45 comment: `# OpenTelemetry (preloaded by src/server/instrumentation.ts in the start scripts; no code changes needed).`
+- `README.md` line 140: replace the parenthetical about `--import @opentelemetry/auto-instrumentations-node/register` with: (`OTEL_*`; the start scripts preload `src/server/instrumentation.ts`, which hooks ESM imports so dependencies such as pino and ioredis are instrumented too). Also, in the README's Deploying section, if the worker command is quoted, add the same `--import ./dist/server/instrumentation.js` flag.
+- `knip.json`: run `pnpm knip`; if it reports `src/server/instrumentation.ts` as unused, add it to `entry` (knip's tsdown plugin normally picks up tsdown entries).
+
+- [ ] **Step 4: Verify**
+
+1. `pnpm check` green; `pnpm build` produces `dist/server/instrumentation.js`.
+2. Dev path, with the stack running and the user's `.env` untouched (explicit env vars override the env file):
+   ```
+   PORT=3100 APP_URL=http://localhost:3100 ANALYTICS_URL=http://localhost:3002 ANALYTICS_WEBSITE_ID=6ef283e9-def7-423a-9a9a-5682722e1daf OTEL_SDK_DISABLED=false OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318 OTEL_SERVICE_NAME=fix-dev OTEL_TRACES_EXPORTER=otlp OTEL_LOGS_EXPORTER=otlp OTEL_METRICS_EXPORTER=none JOBS_INLINE=true pnpm dev:server
+   ```
+   in the background; wait for `curl -s localhost:3100/readyz`; sign up a fresh user (`POST /api/auth/sign-up/email`, header `Origin: http://localhost:3100`); then expect `curl -s localhost:3100/metrics | grep analytics_events_total` to show `result="sent"`, Umami to show the event (`GET localhost:3002/api/websites/<id>/stats?startAt=<now-1h ms>&endAt=<now+1h ms>` with the bearer token, or `GET .../metrics?type=event&startAt=&endAt=` listing `user.signed_up`), and after ~15 s Loki to have the logs:
+   ```
+   curl -s --get 'http://localhost:3001/api/datasources/proxy/uid/loki/loki/api/v1/query_range' --data-urlencode 'query={service_name="fix-dev"}' --data-urlencode 'limit=3'
+   ```
+   Stop the server afterwards (on Windows `taskkill //F //T //PID <pid>` for the `node --watch` tree) and confirm port 3100 is free.
+3. Production bundle path: same env plus `NODE_ENV=production` and `OTEL_SERVICE_NAME=fix-prod`, running `node --env-file-if-exists=.env --import ./dist/server/instrumentation.js dist/server/main.js`; confirm `/readyz`, one log stream in Loki for `fix-prod`, then stop it. (Production mode serves `dist/client`; `pnpm build` has created it.)
+4. There must be no `DeprecationWarning`, `ExperimentalWarning` about hooks, or `'import-in-the-middle' failed to wrap` lines in either server's output.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add package.json pnpm-lock.yaml tsdown.config.ts Dockerfile .env.example README.md src/server/instrumentation.ts
+git commit -m "fix(telemetry): hook ESM imports so pino logs and dependency spans reach OTLP"
+```
+(Add `knip.json` / `src/server/instrumentation.d.ts` only if created.)

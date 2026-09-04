@@ -2,6 +2,9 @@ import type { MiddlewareHandler } from "hono";
 import { type Auth, isAdmin } from "#server/auth/auth";
 
 /**
+ * Not mounted by default (Bull Board moved to a dev container); kept as the pattern for guarding
+ * server-rendered admin paths.
+ *
  * Protects server-rendered admin surfaces (the queue dashboard) that live outside tRPC.
  * tRPC procedures use `adminProcedure` instead.
  */

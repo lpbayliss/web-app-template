@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { FormattedMessage } from "react-intl";
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { detectLocale, IntlProvider, useLocale } from "./intl.provider";
 
 function Probe() {
@@ -29,6 +29,10 @@ describe("detectLocale", () => {
 describe("IntlProvider", () => {
   beforeEach(() => localStorage.clear());
 
+  afterEach(() => {
+    delete window.umami;
+  });
+
   it("renders English by default and switches locale on demand", async () => {
     const user = userEvent.setup();
     render(
@@ -52,5 +56,18 @@ describe("IntlProvider", () => {
       </IntlProvider>,
     );
     await waitFor(() => expect(screen.getByRole("heading")).toHaveTextContent("Aufgaben"));
+  });
+
+  it("reports locale changes to analytics", async () => {
+    const umami = { track: vi.fn(), identify: vi.fn() };
+    window.umami = umami;
+    const user = userEvent.setup();
+    render(
+      <IntlProvider>
+        <Probe />
+      </IntlProvider>,
+    );
+    await user.click(screen.getByRole("button", { name: "de" }));
+    expect(umami.track).toHaveBeenCalledWith("locale.changed", { locale: "de" });
   });
 });

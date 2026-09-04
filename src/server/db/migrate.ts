@@ -11,9 +11,9 @@ const handle = createDb(Config.databaseUrl);
 const started = Date.now();
 try {
   await migrate(handle.db, { migrationsFolder: MIGRATIONS_FOLDER });
-  Logger.info("migrations applied", { durationMs: Date.now() - started });
+  Logger.info({ durationMs: Date.now() - started }, "migrations applied");
 } catch (error) {
-  Logger.error("migration failed", { error });
+  Logger.error({ error }, "migration failed");
   process.exitCode = 1;
 } finally {
   await handle.close();

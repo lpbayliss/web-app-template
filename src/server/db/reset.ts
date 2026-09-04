@@ -18,9 +18,12 @@ try {
   await handle.db.execute(sql`drop schema if exists drizzle cascade`);
   await handle.db.execute(sql`create schema public`);
   await migrate(handle.db, { migrationsFolder: MIGRATIONS_FOLDER });
-  Logger.info("database reset complete", {
-    database: new URL(Config.databaseUrl).pathname.slice(1),
-  });
+  Logger.info(
+    {
+      database: new URL(Config.databaseUrl).pathname.slice(1),
+    },
+    "database reset complete",
+  );
 } finally {
   await handle.close();
 }

@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import { Cache, MemoryCacheStore, NotFoundError } from "#core";
+import { Analytics, Cache, MemoryCacheStore, NotFoundError } from "#core";
 import { schema } from "#server/db/client";
 import { cachePrefix } from "#server/trpc/cache.middleware";
 import { createTestDb, type TestDb } from "#test/server/db.harness";
@@ -57,5 +57,15 @@ describe("TaskService", () => {
     await service.create("u2", { title: "not mine" });
     const mine = await service.list("u1");
     expect(mine.some((t) => t.title === "not mine")).toBe(false);
+  });
+
+  it("reports task.created and task.completed to analytics", async () => {
+    const track = vi.spyOn(Analytics, "track");
+    const task = await service.create("u1", { title: "ship it" });
+    expect(track).toHaveBeenCalledWith("task.created", { userId: "u1", taskId: task.id });
+    await service.update("u1", { id: task.id, title: "ship it now" });
+    expect(track).not.toHaveBeenCalledWith("task.completed", expect.anything());
+    await service.update("u1", { id: task.id, completed: true });
+    expect(track).toHaveBeenCalledWith("task.completed", { userId: "u1", taskId: task.id });
   });
 });

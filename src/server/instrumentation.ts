@@ -20,14 +20,19 @@ import { register, supportsSyncHooks } from "import-in-the-middle/register-hooks
  */
 const dependencies = [/\/node_modules\//];
 
-if (supportsSyncHooks()) {
-  register({ include: dependencies });
-} else {
-  // Older Node 24: the loader runs on a separate thread, so only serialisable options work.
-  registerAsyncHook("import-in-the-middle/hook.mjs", import.meta.url, {
-    data: { include: dependencies },
-  });
-}
+// This preload runs before Config exists, and OTEL_* are the SDK's own variables, so reading
+// process.env here is the sanctioned exception to the config.ts rule. A top-level `return` is
+// not allowed in ESM, so the registration and dynamic import are wrapped instead of early-exiting.
+if (process.env.OTEL_SDK_DISABLED !== "true") {
+  if (supportsSyncHooks()) {
+    register({ include: dependencies });
+  } else {
+    // Older Node 24: the loader runs on a separate thread, so only serialisable options work.
+    registerAsyncHook("import-in-the-middle/hook.mjs", import.meta.url, {
+      data: { include: dependencies },
+    });
+  }
 
-// Dynamic so it runs after the hook is registered (static imports are hoisted).
-await import("@opentelemetry/auto-instrumentations-node/register");
+  // Dynamic so it runs after the hook is registered (static imports are hoisted).
+  await import("@opentelemetry/auto-instrumentations-node/register");
+}

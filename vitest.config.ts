@@ -26,6 +26,7 @@ export default defineConfig({
         "src/server/main.ts",
         "src/server/worker.main.ts",
         "src/server/bootstrap.ts",
+        "src/server/instrumentation.ts",
         "src/server/db/client.ts",
         "src/server/db/migrate.ts",
         "src/server/db/reset.ts",

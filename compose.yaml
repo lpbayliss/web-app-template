@@ -98,7 +98,7 @@ services:
       DATABASE_TYPE: postgresql
       APP_SECRET: dev-only-umami-secret
       DISABLE_TELEMETRY: "1"
-      DISABLE_BOT_CHECK: "1" # server-side events carry the app's own User-Agent
+      DISABLE_BOT_CHECK: "1" # server-side events carry the app's own User-Agent; dev only: lets server-side events through; a shared instance should keep the bot check on
     healthcheck:
       test: ["CMD-SHELL", "curl -fs http://localhost:3000/api/heartbeat"]
       interval: 5s
@@ -125,6 +125,7 @@ services:
   bull-board:
     image: ghcr.io/felixmosh/bull-board:latest
     restart: unless-stopped
+    # --prefix must match the app's BullMQ prefix `${APP_NAME}:bull` (src/server/jobs/queue.ts)
     command: ["--redis", "redis://redis:6379", "--prefix", "web-app-template:bull"]
     ports:
       - "3003:3000"

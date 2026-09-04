@@ -11,7 +11,10 @@ token=$(curl -fsS -X POST "$UMAMI_URL/api/auth/login" \
   | sed -n 's/.*"token":"\([^"]*\)".*/\1/p')
 [ -n "$token" ] || { echo "umami: login failed (default credentials changed?)"; exit 1; }
 
-existing=$(curl -fsS "$UMAMI_URL/api/websites/$WEBSITE_ID" -H "authorization: Bearer $token")
+existing=$(curl -sS "$UMAMI_URL/api/websites/$WEBSITE_ID" -H "authorization: Bearer $token") || {
+  echo "umami: website lookup failed"
+  exit 1
+}
 case "$existing" in
   *"\"id\":\"$WEBSITE_ID\""*)
     echo "umami: website $WEBSITE_ID already exists"
@@ -19,7 +22,10 @@ case "$existing" in
     ;;
 esac
 
-curl -fsS -X POST "$UMAMI_URL/api/websites" \
+curl -sS -X POST "$UMAMI_URL/api/websites" \
   -H 'content-type: application/json' -H "authorization: Bearer $token" \
-  -d "{\"id\":\"$WEBSITE_ID\",\"name\":\"web-app-template\",\"domain\":\"localhost\"}" > /dev/null
+  -d "{\"id\":\"$WEBSITE_ID\",\"name\":\"web-app-template\",\"domain\":\"localhost\"}" > /dev/null || {
+  echo "umami: website create failed"
+  exit 1
+}
 echo "umami: website $WEBSITE_ID created"

@@ -17,7 +17,7 @@ description: Start or check the local development stack (Postgres, Redis, Mailpi
 - UI: http://localhost:5173 (Vite proxies `/api` and the WebSocket to :3000).
 - API docs: http://localhost:3000/api/docs, spec at `/api/openapi.json`.
 - Dev tools (all from `docker compose up -d`):
-  - Grafana (logs, traces, metrics): http://localhost:3001 — Explore, data source Loki, query `{service_name="web-app-template"}`.
+  - Grafana (logs, traces, metrics): http://localhost:3001 — dashboards "web-app-template / App" and "/ Worker" (provisioned from `docker/otel-lgtm/dashboards/*.json`; edit the JSON, then `docker compose restart grafana`), or Explore with data source Loki, query `{service_name="web-app-template"}`.
   - Umami (analytics): http://localhost:3002 — admin / umami, website "web-app-template".
   - Bull Board (queues): http://localhost:3003.
   - RedisInsight (cache + queue keys): http://localhost:5540.

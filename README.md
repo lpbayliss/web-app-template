@@ -68,7 +68,7 @@ pnpm dev                  # API :3000 + Vite :5173
 | --- | --- | --- |
 | http://localhost:5173 | The app. Vite dev server, proxies `/api` to :3000 | [Vite](https://vite.dev/config/server-options) |
 | http://localhost:3000/api/docs | API reference generated from the routers (OpenAPI) | [Scalar](https://guides.scalar.com/scalar/scalar-api-references/getting-started) |
-| http://localhost:3001 | Grafana: logs (Loki), traces (Tempo), metrics (Prometheus) | [grafana/otel-lgtm](https://github.com/grafana/docker-otel-lgtm) |
+| http://localhost:3001 | Grafana: logs (Loki), traces (Tempo), metrics (Prometheus). Dashboards "App" and "Worker" are provisioned from `docker/otel-lgtm/dashboards/` | [grafana/otel-lgtm](https://github.com/grafana/docker-otel-lgtm) |
 | http://localhost:3002 | Umami analytics, sign in with `admin` / `umami` | [Umami](https://umami.is/docs) |
 | http://localhost:3003 | Bull Board: queues, jobs and failures | [Bull Board](https://github.com/felixmosh/bull-board) |
 | http://localhost:5540 | RedisInsight: cache and queue keys | [RedisInsight](https://redis.io/docs/latest/develop/tools/insight/) |

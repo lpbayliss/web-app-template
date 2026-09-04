@@ -72,6 +72,8 @@ services:
       - "4318:4318" # OTLP HTTP (OTEL_EXPORTER_OTLP_ENDPOINT)
     volumes:
       - ./docker/otel-lgtm/prometheus.yaml:/otel-lgtm/prometheus.yaml:ro
+      - ./docker/otel-lgtm/grafana-dashboards.yaml:/otel-lgtm/grafana/conf/provisioning/dashboards/web-app-template.yaml:ro
+      - ./docker/otel-lgtm/dashboards:/otel-lgtm/dashboards:ro
       - grafana-data:/data
     extra_hosts:
       - "host.docker.internal:host-gateway" # lets Prometheus scrape `pnpm dev` on Linux too

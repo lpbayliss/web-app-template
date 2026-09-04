@@ -1,0 +1,15 @@
+# Grafana dashboard provisioning for the dev stack. Mounted into grafana/otel-lgtm next to the
+# image's own providers; every *.json in docker/otel-lgtm/dashboards/ becomes a dashboard in the
+# "web-app-template" folder. Edit the JSON (or export from the UI and paste it back), then
+# `docker compose restart grafana`. Provisioned dashboards are read-only in the UI.
+apiVersion: 1
+
+providers:
+  - name: web-app-template
+    folder: web-app-template
+    type: file
+    updateIntervalSeconds: 30
+    allowUiUpdates: false
+    options:
+      path: /otel-lgtm/dashboards
+      foldersFromFilesStructure: false

@@ -104,4 +104,39 @@ describe("loadConfig", () => {
   it("returns a frozen object", () => {
     expect(Object.isFrozen(loadConfig(valid))).toBe(true);
   });
+
+  it("disables analytics unless both ANALYTICS_URL and ANALYTICS_WEBSITE_ID are set", () => {
+    expect(loadConfig(valid).analytics).toEqual({ enabled: false });
+    expect(
+      loadConfig({
+        ...valid,
+        ANALYTICS_URL: "http://localhost:3002/",
+        ANALYTICS_WEBSITE_ID: "6ef283e9-def7-423a-9a9a-5682722e1daf",
+      }).analytics,
+    ).toEqual({
+      enabled: true,
+      url: "http://localhost:3002",
+      serverUrl: "http://localhost:3002",
+      websiteId: "6ef283e9-def7-423a-9a9a-5682722e1daf",
+    });
+  });
+
+  it("lets the server post analytics to a private address", () => {
+    const config = loadConfig({
+      ...valid,
+      ANALYTICS_URL: "http://localhost:3002",
+      ANALYTICS_SERVER_URL: "http://umami:3000/",
+      ANALYTICS_WEBSITE_ID: "6ef283e9-def7-423a-9a9a-5682722e1daf",
+    });
+    expect(config.analytics).toMatchObject({ enabled: true, serverUrl: "http://umami:3000" });
+  });
+
+  it("rejects a half-configured analytics pair", () => {
+    expect(() => loadConfig({ ...valid, ANALYTICS_URL: "http://localhost:3002" })).toThrow(
+      ConfigError,
+    );
+    expect(() =>
+      loadConfig({ ...valid, ANALYTICS_WEBSITE_ID: "6ef283e9-def7-423a-9a9a-5682722e1daf" }),
+    ).toThrow(/ANALYTICS_URL and ANALYTICS_WEBSITE_ID/);
+  });
 });

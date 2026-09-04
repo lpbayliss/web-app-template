@@ -14,7 +14,7 @@ export {
   RedisCacheStore,
   type RedisLike,
 } from "./cache";
-export { type AppConfig, Config, ConfigError, loadConfig } from "./config";
+export { type AnalyticsConfig, type AppConfig, Config, ConfigError, loadConfig } from "./config";
 export { Context, type ContextValues } from "./context";
 export {
   AppError,

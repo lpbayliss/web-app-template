@@ -229,3 +229,18 @@ skills). `LICENSE`: MIT, "Copyright (c) 2026 Luke Bayliss".
 - Signing up in the dev app produces `user.signed_up` in Umami and a page view from the
   client; toggling the theme produces `theme.changed`.
 - `pnpm test:e2e` passes with the queue assertion removed.
+
+## Amendments (planning, 2026-09-04)
+
+- The server provider talks to Umami's `POST /api/send` with Node's global `fetch` instead of
+  `@umami/node`: that package has had no release since August 2024 and the payload is eight
+  fields.
+- A third optional variable, `ANALYTICS_SERVER_URL`, lets the server post to a private address
+  (the `app` compose profile reaches Umami as `http://umami:3000` while the browser uses
+  `http://localhost:3002`). It defaults to `ANALYTICS_URL`.
+- Client calls made before the tracker script has loaded are dropped, except the current user
+  id, which is replayed together with the first page view on the script's `load` event.
+  `identify(null)` is a no-op (Umami has no reset call; sessions are cookie-less and rotate).
+- `task.completed` fires whenever an update sets `completed: true`, without a read-before-write.
+- `Analytics.track` falls back to the request's `userId` and `path` from `Context` when the
+  caller passes none.

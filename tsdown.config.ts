@@ -20,5 +20,9 @@ export default defineConfig({
   clean: true,
   fixedExtension: false,
   noExternal: ["react-email"],
-  copy: [{ from: "src/server/db/migrations", to: "dist/server/migrations" }],
+  // `to` is the parent: tsdown copies the source directory into it, so this lands the SQL at
+  // dist/server/migrations/, which is where MIGRATIONS_FOLDER resolves. Naming the full target
+  // path here instead produces dist/server/migrations/migrations/ and migrate.js cannot find
+  // meta/_journal.json.
+  copy: [{ from: "src/server/db/migrations", to: "dist/server" }],
 });

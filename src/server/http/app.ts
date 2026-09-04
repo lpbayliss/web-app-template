@@ -13,6 +13,7 @@ import { MemoryStore, rateLimiter, type Store } from "hono-rate-limiter";
 import { Config, isAppError, Logger } from "#core";
 import { appRouter } from "#server/trpc/app.router";
 import { type AppDeps, createContextFactory } from "#server/trpc/context";
+import { buildContentSecurityPolicy } from "./csp";
 import { adminGuard } from "./middleware/admin-guard.middleware";
 import { clientIp, contextMiddleware } from "./middleware/context.middleware";
 import { docsRoutes } from "./routes/docs.route";
@@ -46,17 +47,7 @@ export function createApp(deps: AppDeps, options: AppOptions): Hono {
     // The docs page loads Scalar from a CDN, so it gets a looser policy than the SPA/API.
     if (isDocs(c.req.path)) return next();
     return secureHeaders({
-      contentSecurityPolicy: {
-        defaultSrc: ["'self'"],
-        scriptSrc: ["'self'"],
-        styleSrc: ["'self'", "'unsafe-inline'"],
-        imgSrc: ["'self'", "data:"],
-        fontSrc: ["'self'", "data:"],
-        connectSrc: ["'self'", "ws:", "wss:"],
-        frameAncestors: ["'none'"],
-        objectSrc: ["'none'"],
-        baseUri: ["'self'"],
-      },
+      contentSecurityPolicy: buildContentSecurityPolicy(Config.analytics),
       referrerPolicy: "strict-origin-when-cross-origin",
       crossOriginEmbedderPolicy: false,
       strictTransportSecurity: Config.isProduction ? "max-age=31536000; includeSubDomains" : false,

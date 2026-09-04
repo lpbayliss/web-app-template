@@ -1,3 +1,8 @@
+/** @jsxRuntime automatic @jsxImportSource react */
+// The pragmas pin the automatic JSX runtime per file. tsx (esbuild) reads the root tsconfig.json, a
+// solution file with no compilerOptions, so without them dev/migrate/seed fall back to classic JSX
+// and fail with "React is not defined". Copy both lines into any new server-side .tsx file.
+
 import type { ReactNode } from "react";
 import { Body, Container, Head, Html, Preview, Section, Text } from "react-email";
 

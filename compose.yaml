@@ -1,8 +1,8 @@
 # Local development stack.
-#   docker compose up -d                          -> db, redis, mailpit (app runs on the host with `pnpm dev`)
-#   docker compose --profile app up               -> everything in containers (also used by .devcontainer)
-#   docker compose --profile test up -d           -> throwaway db-test / redis-test / mailpit-test for integration + e2e
-#   docker compose --profile observability up -d  -> jaeger (set OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318)
+#   docker compose up -d                       -> data services + a UI for each of them (see README "What's running")
+#   docker compose up -d db redis mailpit      -> just the data services (low-memory machines)
+#   docker compose --profile app up            -> everything in containers, app included (also used by .devcontainer)
+#   docker compose --profile test up -d        -> throwaway db-test / redis-test / mailpit-test for integration + e2e
 
 name: web-app-template
 
@@ -35,6 +35,7 @@ x-mailpit: &mailpit
     retries: 10
 
 services:
+  # ---- data services the app connects to ----
   db:
     <<: *postgres
     restart: unless-stopped
@@ -59,6 +60,108 @@ services:
     ports:
       - "1025:1025" # SMTP
       - "8025:8025" # Web UI + REST API (http://localhost:8025/api/v1/messages)
+
+  # ---- dev tools: one UI per connected system ----
+  grafana:
+    # Grafana + Loki (logs) + Tempo (traces) + Prometheus (metrics) + OTel collector in one image.
+    image: grafana/otel-lgtm:latest
+    restart: unless-stopped
+    ports:
+      - "3001:3000" # Grafana UI (anonymous admin)
+      - "4317:4317" # OTLP gRPC
+      - "4318:4318" # OTLP HTTP (OTEL_EXPORTER_OTLP_ENDPOINT)
+    volumes:
+      - ./docker/otel-lgtm/prometheus.yaml:/otel-lgtm/prometheus.yaml:ro
+      - grafana-data:/data
+    extra_hosts:
+      - "host.docker.internal:host-gateway" # lets Prometheus scrape `pnpm dev` on Linux too
+
+  umami-db-init:
+    image: postgres:17-alpine
+    restart: "no"
+    environment:
+      PGPASSWORD: app
+    volumes:
+      - ./docker/umami/create-db.sh:/scripts/create-db.sh:ro
+    command: ["sh", "/scripts/create-db.sh"]
+    depends_on:
+      db:
+        condition: service_healthy
+
+  umami:
+    image: ghcr.io/umami-software/umami:postgresql-latest
+    restart: unless-stopped
+    ports:
+      - "3002:3000" # UI (admin / umami)
+    environment:
+      DATABASE_URL: postgresql://app:app@db:5432/umami
+      DATABASE_TYPE: postgresql
+      APP_SECRET: dev-only-umami-secret
+      DISABLE_TELEMETRY: "1"
+      DISABLE_BOT_CHECK: "1" # server-side events carry the app's own User-Agent
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fs http://localhost:3000/api/heartbeat"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+    depends_on:
+      umami-db-init:
+        condition: service_completed_successfully
+
+  umami-seed:
+    image: curlimages/curl:latest
+    restart: "no"
+    environment:
+      UMAMI_URL: http://umami:3000
+      WEBSITE_ID: 6ef283e9-def7-423a-9a9a-5682722e1daf # = ANALYTICS_WEBSITE_ID in .env.example
+    volumes:
+      - ./docker/umami/seed.sh:/scripts/seed.sh:ro
+    entrypoint: ["sh", "/scripts/seed.sh"]
+    depends_on:
+      umami:
+        condition: service_healthy
+
+  bull-board:
+    image: ghcr.io/felixmosh/bull-board:latest
+    restart: unless-stopped
+    command: ["--redis", "redis://redis:6379", "--prefix", "web-app-template:bull"]
+    ports:
+      - "3003:3000"
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  redisinsight:
+    image: redis/redisinsight:latest
+    restart: unless-stopped
+    ports:
+      - "5540:5540"
+    environment:
+      RI_REDIS_HOST: redis
+      RI_REDIS_PORT: "6379"
+      RI_REDIS_ALIAS: web-app-template
+      RI_ACCEPT_TERMS_AND_CONDITIONS: "true"
+    volumes:
+      - redisinsight-data:/data
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  drizzle-gateway:
+    # Standalone Drizzle Studio. Add the connection once in the UI: postgres://app:app@db:5432/app
+    image: ghcr.io/drizzle-team/gateway:latest
+    restart: unless-stopped
+    ports:
+      - "4983:4983"
+    environment:
+      PORT: "4983"
+      STORE_PATH: /app
+    volumes:
+      - drizzle-gateway-data:/app
+    depends_on:
+      db:
+        condition: service_healthy
 
   # ---- throwaway services for integration + e2e tests (different ports, no persistence) ----
   db-test:
@@ -86,14 +189,6 @@ services:
       - "1026:1025"
       - "8026:8025"
 
-  # ---- optional tracing backend ----
-  jaeger:
-    profiles: ["observability"]
-    image: jaegertracing/jaeger:2.11.0
-    ports:
-      - "16686:16686" # UI
-      - "4318:4318" # OTLP HTTP
-
   # ---- full containerised dev (devcontainer) ----
   app:
     profiles: ["app"]
@@ -113,6 +208,15 @@ services:
       SMTP_URL: smtp://mailpit:1025
       AUTH_SECRET: dev-only-secret-dev-only-secret-dev-only
       ADMIN_EMAILS: admin@example.com
+      ANALYTICS_URL: http://localhost:3002
+      ANALYTICS_SERVER_URL: http://umami:3000
+      ANALYTICS_WEBSITE_ID: 6ef283e9-def7-423a-9a9a-5682722e1daf
+      OTEL_SDK_DISABLED: "false"
+      OTEL_SERVICE_NAME: web-app-template
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://grafana:4318
+      OTEL_TRACES_EXPORTER: otlp
+      OTEL_METRICS_EXPORTER: none
+      OTEL_LOGS_EXPORTER: otlp
     ports:
       - "3000:3000"
       - "5173:5173"
@@ -131,3 +235,6 @@ services:
 volumes:
   db-data:
   app-node-modules:
+  grafana-data:
+  redisinsight-data:
+  drizzle-gateway-data:

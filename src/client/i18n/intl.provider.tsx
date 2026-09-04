@@ -8,6 +8,7 @@ import {
   useState,
 } from "react";
 import { IntlProvider as ReactIntlProvider } from "react-intl";
+import { analytics } from "#client/lib/analytics.client";
 import en from "./en.messages.json";
 
 export const LOCALES = ["en", "de"] as const;
@@ -72,6 +73,7 @@ export function IntlProvider({
 
   const setLocale = useCallback((next: Locale) => {
     setLocaleState(next);
+    analytics.track("locale.changed", { locale: next });
     try {
       localStorage.setItem(STORAGE_KEY, next);
     } catch {

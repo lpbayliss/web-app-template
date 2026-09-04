@@ -7,6 +7,7 @@ import {
   useMemo,
   useState,
 } from "react";
+import { analytics } from "#client/lib/analytics.client";
 
 export type Theme = "light" | "dark" | "system";
 
@@ -55,6 +56,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   const setTheme = useCallback((next: Theme) => {
     setThemeState(next);
+    analytics.track("theme.changed", { theme: next });
     try {
       if (next === "system") localStorage.removeItem(STORAGE_KEY);
       else localStorage.setItem(STORAGE_KEY, next);

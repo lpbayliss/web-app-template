@@ -18,6 +18,7 @@ const envSchema = z.object({
   APP_NAME: z.string().min(1).default("web-app-template"),
   APP_VERSION: z.string().min(1).default("0.0.0"),
   PORT: z.coerce.number().int().min(1).max(65535).default(3000),
+  WORKER_PORT: z.coerce.number().int().min(1).max(65535).default(3010),
   HOST: z.string().min(1).default("0.0.0.0"),
   LOG_LEVEL: z.enum(["error", "warn", "info", "http", "debug"]).default("info"),
   LOG_FORMAT: z.enum(["json", "pretty"]).optional(),
@@ -81,6 +82,8 @@ export interface AppConfig {
   readonly appName: string;
   readonly appVersion: string;
   readonly port: number;
+  /** Where the dedicated worker process serves /healthz, /readyz and /metrics. */
+  readonly workerPort: number;
   readonly host: string;
   readonly logLevel: Env["LOG_LEVEL"];
   readonly logFormat: "json" | "pretty";
@@ -172,6 +175,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     appName: e.APP_NAME,
     appVersion: e.APP_VERSION,
     port: e.PORT,
+    workerPort: e.WORKER_PORT,
     host: e.HOST,
     logLevel: e.LOG_LEVEL,
     logFormat: e.LOG_FORMAT ?? (isProduction ? "json" : "pretty"),

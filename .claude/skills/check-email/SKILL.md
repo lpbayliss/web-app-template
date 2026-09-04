@@ -33,6 +33,6 @@ curl -s -X DELETE localhost:8025/api/v1/messages
 
 ## Notes
 
-- Welcome emails are sent by the `send-welcome-email` job, so they need the worker running (`JOBS_INLINE=true` in dev, or `pnpm dev:worker`). If nothing arrives, check Bull Board at http://localhost:3003 or `pnpm dev` logs for `job failed`.
+- Welcome emails are sent by the `send-welcome-email` job, so they need the worker running (`pnpm dev` includes it; `JOBS_INLINE=true` folds it into the web process). If nothing arrives, check Bull Board at http://localhost:3003 or `pnpm dev` logs for `job failed`.
 - Playwright uses the same API through `e2e/fixtures/mailpit.fixture.ts` (`mailpit.waitFor(to, subject)`).
 - Templates live in `src/server/email/templates/*.email.tsx` (react-email); preview them by rendering in a test or Storybook.

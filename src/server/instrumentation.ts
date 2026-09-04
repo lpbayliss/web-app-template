@@ -11,6 +11,7 @@
  */
 import { register as registerAsyncHook } from "node:module";
 import { register, supportsSyncHooks } from "import-in-the-middle/register-hooks.mjs";
+import { scopeServiceName } from "./core/telemetry-scope";
 
 /**
  * Wrap dependencies only; the app's own modules are left untouched. An exclude pattern for
@@ -24,6 +25,9 @@ const dependencies = [/\/node_modules\//];
 // process.env here is the sanctioned exception to the config.ts rule. A top-level `return` is
 // not allowed in ESM, so the registration and dynamic import are wrapped instead of early-exiting.
 if (process.env.OTEL_SDK_DISABLED !== "true") {
+  // The worker process reports as `<OTEL_SERVICE_NAME>-worker` so its logs, traces and metrics
+  // are scoped separately from the web tier.
+  scopeServiceName(process.env, process.argv[1]);
   if (supportsSyncHooks()) {
     register({ include: dependencies });
   } else {
@@ -32,7 +36,6 @@ if (process.env.OTEL_SDK_DISABLED !== "true") {
       data: { include: dependencies },
     });
   }
-
   // Dynamic so it runs after the hook is registered (static imports are hoisted).
   await import("@opentelemetry/auto-instrumentations-node/register");
 }

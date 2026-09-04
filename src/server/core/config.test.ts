@@ -41,10 +41,12 @@ describe("loadConfig", () => {
     const config = loadConfig({
       ...valid,
       PORT: "8080",
+      WORKER_PORT: "3011",
       RATE_LIMIT_AUTH_MAX: "5",
       CACHE_ENABLED: "false",
     });
     expect(config.port).toBe(8080);
+    expect(config.workerPort).toBe(3011);
     expect(config.rateLimit.authMax).toBe(5);
     expect(config.cache.enabled).toBe(false);
   });

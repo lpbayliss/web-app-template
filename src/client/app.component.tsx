@@ -7,6 +7,7 @@ import { useSession } from "./features/auth/use-session.hook";
 import { IntlProvider } from "./i18n/intl.provider";
 import { queryClient } from "./lib/query.client";
 import { TRPCProvider, trpcClient } from "./lib/trpc.client";
+import { AnalyticsProvider } from "./providers/analytics.provider";
 import { ThemeProvider } from "./providers/theme.provider";
 
 /** Bridges the auth session into router context so routes can guard in `beforeLoad`. */
@@ -21,7 +22,11 @@ function RouterWithAuth() {
     void router.invalidate();
   }, [userId, session.isPending]);
   if (session.isPending) return null;
-  return <RouterProvider router={router} context={{ session }} />;
+  return (
+    <AnalyticsProvider router={router} userId={session.user?.id ?? null}>
+      <RouterProvider router={router} context={{ session }} />
+    </AnalyticsProvider>
+  );
 }
 
 export function App() {
